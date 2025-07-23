@@ -52,6 +52,15 @@
             };
           });
         };
+
+        box2d-py = _prev.box2d-py.overrideAttrs(old: {
+          nativeBuildInputs = old.nativeBuildInputs ++ [
+            (_final.resolveBuildSystem {
+              setuptools = [ ];
+              swig = [ ];
+            })
+          ];
+        });
       };
 
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
