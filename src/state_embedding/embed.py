@@ -1,5 +1,6 @@
 from stable_baselines3.dqn import DQN
-from stable_baselines3.dqn.policies import QNetwork
+from stable_baselines3.dqn.policies import QNetwork, DQNPolicy
+from stable_baselines3.common.buffers import ReplayBuffer
 from torch.nn import functional as F
 from stable_baselines3.common.type_aliases import PyTorchObs
 import torch as th
@@ -7,10 +8,72 @@ from torch import nn
 import numpy as np
 from gymnasium import spaces
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from typing import Optional
+from typing import Optional, Union, Any
+from stable_baselines3.common.type_aliases import GymEnv, Schedule
 
 
 class DQNWithEmbedLoss(DQN):
+    def __init__(
+        self,
+        policy: Union[str, type[DQNPolicy]],
+        env: Union[GymEnv, str],
+        learning_rate: Union[float, Schedule] = 1e-4,
+        buffer_size: int = 1_000_000,  # 1e6
+        learning_starts: int = 100,
+        batch_size: int = 32,
+        tau: float = 1.0,
+        gamma: float = 0.99,
+        train_freq: Union[int, tuple[int, str]] = 4,
+        gradient_steps: int = 1,
+        replay_buffer_class: Optional[type[ReplayBuffer]] = None,
+        replay_buffer_kwargs: Optional[dict[str, Any]] = None,
+        optimize_memory_usage: bool = False,
+        n_steps: int = 1,
+        target_update_interval: int = 10000,
+        exploration_fraction: float = 0.1,
+        exploration_initial_eps: float = 1.0,
+        exploration_final_eps: float = 0.05,
+        max_grad_norm: float = 10,
+        stats_window_size: int = 100,
+        tensorboard_log: Optional[str] = None,
+        policy_kwargs: Optional[dict[str, Any]] = None,
+        verbose: int = 0,
+        seed: Optional[int] = None,
+        device: Union[th.device, str] = "auto",
+        _init_setup_model: bool = True,
+        k: int = 10,  # Embedding context
+    ):
+        super().__init__(
+            policy,
+            env,
+            learning_rate,
+            buffer_size,
+            learning_starts,
+            batch_size,
+            tau,
+            gamma,
+            train_freq,
+            gradient_steps,
+            replay_buffer_class,
+            replay_buffer_kwargs,
+            optimize_memory_usage,
+            n_steps,
+            target_update_interval,
+            exploration_fraction,
+            exploration_initial_eps,
+            exploration_final_eps,
+            max_grad_norm,
+            stats_window_size,
+            tensorboard_log,
+            policy_kwargs,
+            verbose,
+            seed,
+            device,
+            _init_setup_model,
+        )
+
+        self._k = k
+
     # Copied from super().train(), modified to include reconstruction loss of special state module
     # @override
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
@@ -81,6 +144,7 @@ class StateEmbedNetwork(QNetwork):
         net_arch: Optional[list[int]] = None,
         activation_fn: type[nn.Module] = nn.ReLU,
         normalize_images: bool = True,
+        k: int = 10,
     ):
         super().__init__(
             observation_space,
@@ -92,7 +156,8 @@ class StateEmbedNetwork(QNetwork):
             normalize_images,
         )
 
-        self._custom = False
+        self._custom = False  # Whether to use vanilla or custom behavior
+        self._k = k  # Window size for contextual embedding
 
     # @override
     def forward(self, obs: PyTorchObs) -> th.Tensor:
