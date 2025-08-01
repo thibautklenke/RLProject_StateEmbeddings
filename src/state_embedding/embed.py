@@ -7,7 +7,7 @@ from torch import nn
 import numpy as np
 from gymnasium import spaces
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from typing import Optional
+from typing import Optional, override
 
 class DQNWithEmbedLoss(DQN):
     # Copied from super().train(), modified to include reconstruction loss of special state module
