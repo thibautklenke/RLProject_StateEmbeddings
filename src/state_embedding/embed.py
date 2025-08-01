@@ -10,7 +10,7 @@ from gymnasium import spaces
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from typing import Optional, Union, Any
 from stable_baselines3.common.type_aliases import GymEnv, Schedule
-
+from state_embedding.replay_buffer import ContextualizedReplayBuffer
 
 class DQNWithEmbedLoss(DQN):
     def __init__(
@@ -25,7 +25,6 @@ class DQNWithEmbedLoss(DQN):
         gamma: float = 0.99,
         train_freq: Union[int, tuple[int, str]] = 4,
         gradient_steps: int = 1,
-        replay_buffer_class: Optional[type[ReplayBuffer]] = None,
         replay_buffer_kwargs: Optional[dict[str, Any]] = None,
         optimize_memory_usage: bool = False,
         n_steps: int = 1,
@@ -54,7 +53,7 @@ class DQNWithEmbedLoss(DQN):
             gamma,
             train_freq,
             gradient_steps,
-            replay_buffer_class,
+            ContextualizedReplayBuffer, # force to use ours
             replay_buffer_kwargs,
             optimize_memory_usage,
             n_steps,
