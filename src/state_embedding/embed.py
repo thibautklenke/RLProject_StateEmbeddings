@@ -1,6 +1,5 @@
 from stable_baselines3.dqn import DQN
 from stable_baselines3.dqn.policies import QNetwork, DQNPolicy
-from stable_baselines3.common.buffers import ReplayBuffer
 from torch.nn import functional as F
 from stable_baselines3.common.type_aliases import PyTorchObs
 import torch as th
@@ -11,6 +10,7 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from typing import Optional, Union, Any
 from stable_baselines3.common.type_aliases import GymEnv, Schedule
 from state_embedding.replay_buffer import ContextualizedReplayBuffer
+
 
 class DQNWithEmbedLoss(DQN):
     def __init__(
@@ -27,7 +27,6 @@ class DQNWithEmbedLoss(DQN):
         gradient_steps: int = 1,
         replay_buffer_kwargs: Optional[dict[str, Any]] = None,
         optimize_memory_usage: bool = False,
-        n_steps: int = 1,
         target_update_interval: int = 10000,
         exploration_fraction: float = 0.1,
         exploration_initial_eps: float = 1.0,
@@ -40,8 +39,13 @@ class DQNWithEmbedLoss(DQN):
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
         _init_setup_model: bool = True,
-        k: int = 10,  # Embedding context
+        window_size: int = 10,  # Embedding context
     ):
+        if replay_buffer_kwargs is None:
+            replay_buffer_kwargs = {"window_size": window_size}
+        else:
+            replay_buffer_kwargs["window_size"] = window_size
+
         super().__init__(
             policy,
             env,
@@ -53,10 +57,9 @@ class DQNWithEmbedLoss(DQN):
             gamma,
             train_freq,
             gradient_steps,
-            ContextualizedReplayBuffer, # force to use ours
+            ContextualizedReplayBuffer,
             replay_buffer_kwargs,
             optimize_memory_usage,
-            n_steps,
             target_update_interval,
             exploration_fraction,
             exploration_initial_eps,
@@ -71,7 +74,7 @@ class DQNWithEmbedLoss(DQN):
             _init_setup_model,
         )
 
-        self._k = k
+        self._window_size: int = window_size
 
     # Copied from super().train(), modified to include reconstruction loss of special state module
     # @override
