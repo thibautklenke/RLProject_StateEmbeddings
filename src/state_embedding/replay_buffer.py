@@ -2,9 +2,11 @@ from typing import Union
 
 from gymnasium import spaces
 from stable_baselines3.common.buffers import ReplayBuffer
+from stable_baselines3.common.vec_env import VecNormalize
+from stable_baselines3.common.buffers import ReplayBufferSamples
 import numpy as np
 import torch as th
-from typing import Any
+from typing import Any, Tuple, Optional
 
 
 class ContextualizedReplayBuffer(ReplayBuffer):
@@ -91,3 +93,57 @@ class ContextualizedReplayBuffer(ReplayBuffer):
                 self._context_index[idx] = 0
 
         super().add(obs, next_obs, action, reward, done, infos)
+
+    def sample_with_context(
+        self, batch_size: int, env: Optional[VecNormalize] = None
+    ) -> Tuple[ReplayBufferSamples, th.Tensor]:
+        # Yes, we are smart
+        if not self.optimize_memory_usage:
+            upper_bound = self.buffer_size if self.full else self.pos
+            batch_inds = np.random.randint(0, upper_bound, size=batch_size)
+            return self._get_samples_with_context(batch_inds, env=env)
+
+        # Do not sample the element with index `self.pos` as the transitions is invalid
+        # (we use only one array to store `obs` and `next_obs`)
+        if self.full:
+            batch_inds = (
+                np.random.randint(1, self.buffer_size, size=batch_size) + self.pos
+            ) % self.buffer_size
+        else:
+            batch_inds = np.random.randint(0, self.pos, size=batch_size)
+        return self._get_samples_with_context(batch_inds, env=env)
+
+    def _get_samples_with_context(
+        self, batch_inds: np.ndarray, env: Optional[VecNormalize] = None
+    ) -> Tuple[ReplayBufferSamples, th.Tensor]:
+        # Sample randomly the env idx
+        env_indices = np.random.randint(0, high=self.n_envs, size=(len(batch_inds),))
+
+        if self.optimize_memory_usage:
+            next_obs = self._normalize_obs(
+                self.observations[(batch_inds + 1) % self.buffer_size, env_indices, :],
+                env,
+            )
+        else:
+            next_obs = self._normalize_obs(
+                self.next_observations[batch_inds, env_indices, :], env
+            )
+
+        data = (
+            self._normalize_obs(self.observations[batch_inds, env_indices, :], env),
+            self.actions[batch_inds, env_indices, :],
+            next_obs,
+            # Only use dones that are not due to timeouts
+            # deactivated by default (timeouts is initialized as an array of False)
+            (
+                self.dones[batch_inds, env_indices]
+                * (1 - self.timeouts[batch_inds, env_indices])
+            ).reshape(-1, 1),
+            self._normalize_reward(
+                self.rewards[batch_inds, env_indices].reshape(-1, 1), env
+            ),
+        )
+        contexts = self.contexts[batch_inds, :, env_indices, :]
+        return ReplayBufferSamples(*tuple(map(self.to_torch, data))), self.to_torch(
+            contexts
+        )
