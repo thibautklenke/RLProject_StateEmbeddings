@@ -1,5 +1,13 @@
 from stable_baselines3.dqn import DQN
 from stable_baselines3.dqn.policies import QNetwork
+from torch.nn import functional as F
+from stable_baselines3.common.type_aliases import PyTorchObs
+import torch as th
+from torch import nn
+import numpy as np
+from gymnasium import spaces
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from typing import Optional
 
 class DQNWithEmbedLoss(DQN):
     # Copied from super().train(), modified to include reconstruction loss of special state module
@@ -41,7 +49,7 @@ class DQNWithEmbedLoss(DQN):
             self.policy.optimizer.zero_grad()
             loss.backward()
             # Clip gradient norm
-            th.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
+            nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
             self.policy.optimizer.step()
 
         # Increase update counter
@@ -56,6 +64,28 @@ class StateEmbedNetwork(QNetwork):
     # TODO: introduce flag whether network uses "vanilla" or "custom" behaviour
     #   Needed because we want to introduce a second loss, but
     #   also to be able to insert this special state module into normal DQN
+
+    def __init__(
+        self,
+        observation_space: spaces.Space,
+        action_space: spaces.Discrete,
+        features_extractor: BaseFeaturesExtractor,
+        features_dim: int,
+        net_arch: Optional[list[int]] = None,
+        activation_fn: type[nn.Module] = nn.ReLU,
+        normalize_images: bool = True
+    ):
+        super().__init__( 
+            observation_space,
+            action_space,
+            features_extractor,
+            features_dim,
+            net_arch,
+            activation_fn,
+            normalize_images
+        )
+
+        self._custom = False
 
     @override
     def forward(self, obs: PyTorchObs) -> th.Tensor:
