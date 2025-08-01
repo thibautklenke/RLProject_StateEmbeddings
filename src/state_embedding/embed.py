@@ -7,11 +7,12 @@ from torch import nn
 import numpy as np
 from gymnasium import spaces
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from typing import Optional, override
+from typing import Optional
+
 
 class DQNWithEmbedLoss(DQN):
     # Copied from super().train(), modified to include reconstruction loss of special state module
-    @override
+    # @override
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
         # Switch to train mode (this affects batch norm / dropout)
         self.policy.set_training_mode(True)
@@ -21,7 +22,9 @@ class DQNWithEmbedLoss(DQN):
         losses = []
         for _ in range(gradient_steps):
             # Sample replay buffer
-            replay_data = self.replay_buffer.sample(batch_size, env=self._vec_normalize_env)  # type: ignore[union-attr]
+            replay_data = self.replay_buffer.sample(
+                batch_size, env=self._vec_normalize_env
+            )  # type: ignore[union-attr]
 
             with th.no_grad():
                 # Compute the next Q-values using the target network
@@ -31,14 +34,19 @@ class DQNWithEmbedLoss(DQN):
                 # Avoid potential broadcast issue
                 next_q_values = next_q_values.reshape(-1, 1)
                 # 1-step TD target
-                target_q_values = replay_data.rewards + (1 - replay_data.dones) * self.gamma * next_q_values
+                target_q_values = (
+                    replay_data.rewards
+                    + (1 - replay_data.dones) * self.gamma * next_q_values
+                )
 
             # Get current Q-values estimates
             current_q_values = self.q_net(replay_data.observations)
             # TODO: intercept state embedding from q_net
 
             # Retrieve the q-values for the actions from the replay buffer
-            current_q_values = th.gather(current_q_values, dim=1, index=replay_data.actions.long())
+            current_q_values = th.gather(
+                current_q_values, dim=1, index=replay_data.actions.long()
+            )
 
             # Compute Huber loss (less sensitive to outliers)
             loss = F.smooth_l1_loss(current_q_values, target_q_values)
@@ -60,7 +68,6 @@ class DQNWithEmbedLoss(DQN):
 
 
 class StateEmbedNetwork(QNetwork):
-
     # TODO: introduce flag whether network uses "vanilla" or "custom" behaviour
     #   Needed because we want to introduce a second loss, but
     #   also to be able to insert this special state module into normal DQN
@@ -73,21 +80,21 @@ class StateEmbedNetwork(QNetwork):
         features_dim: int,
         net_arch: Optional[list[int]] = None,
         activation_fn: type[nn.Module] = nn.ReLU,
-        normalize_images: bool = True
+        normalize_images: bool = True,
     ):
-        super().__init__( 
+        super().__init__(
             observation_space,
             action_space,
             features_extractor,
             features_dim,
             net_arch,
             activation_fn,
-            normalize_images
+            normalize_images,
         )
 
         self._custom = False
 
-    @override
+    # @override
     def forward(self, obs: PyTorchObs) -> th.Tensor:
         # TODO: maybe use own feature extractor
         z = self.extract_features(obs, self.features_extractor)
