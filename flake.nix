@@ -65,7 +65,7 @@
 
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
 
-      python = pkgs.python312;
+      python = pkgs.python312Full;
 
       pythonSet =
         (pkgs.callPackage pyproject-nix.build.packages {
