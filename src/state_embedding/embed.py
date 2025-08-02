@@ -73,6 +73,9 @@ class DQNWithEmbedLoss(DQN):
         )
 
         self._window_size: int = window_size
+        self._embedding_module = StateEmbedNetwork(
+            observation_space=self.observation_space, window_size=window_size
+        )
 
     # Copied from super().train(), modified to include reconstruction loss of special state module
     # @override
@@ -91,6 +94,7 @@ class DQNWithEmbedLoss(DQN):
 
             # [batch_size, window_size, *obs]
             context = th.flatten(context, start_dim=2)
+            context = context.to(th.float32)
             # [batch_size, window_size, num_features]
 
             with th.no_grad():
@@ -106,9 +110,16 @@ class DQNWithEmbedLoss(DQN):
                     + (1 - replay_data.dones) * self.gamma * next_q_values
                 )
 
+            # Update embedding module
+            decoded = self._embedding_module(context)
+            loss_decoded = F.mse_loss(context, decoded)
+            print(loss_decoded)
+
+            self.policy.optimizer.zero_grad()
+            loss_decoded.backward()
+
             # Get current Q-values estimates
             current_q_values = self.q_net(replay_data.observations)
-            # TODO: intercept state embedding from q_net
 
             # Retrieve the q-values for the actions from the replay buffer
             current_q_values = th.gather(
@@ -118,7 +129,6 @@ class DQNWithEmbedLoss(DQN):
             # Compute Huber loss (less sensitive to outliers)
             loss = F.smooth_l1_loss(current_q_values, target_q_values)
             losses.append(loss.item())
-            # TODO: compute reconstruction loss, if state module is in use
 
             # Optimize the policy
             self.policy.optimizer.zero_grad()
@@ -142,28 +152,36 @@ class StateEmbedNetwork(nn.Module):
         n_layers_encoder=6,
         n_layers_decoder=6,
         window_size: int = 10,
-        # embedding_size =
+        embedding_size=2**10,
     ):
         super().__init__()
 
         self._window_size = window_size  # Window size for contextual embedding
         num_features = np.prod(observation_space.shape)
 
-        # self._linear = nn.Linear(num_features, num_features)
+        self._linear_encode = nn.Linear(num_features, embedding_size)
+        self._linear_decode = nn.Linear(embedding_size, num_features)
 
         self._encoder = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(num_features, n_head, batch_first=True),
+            nn.TransformerEncoderLayer(embedding_size, n_head, batch_first=True),
             n_layers_encoder,
         )
 
-        self._decoder = nn.TransformerDecoderLayer(
-            nn.TransformerDecoderLayer(num_features, n_head, batch_first=True),
+        self._decoder = nn.TransformerDecoder(
+            nn.TransformerDecoderLayer(embedding_size, n_head, batch_first=True),
             n_layers_decoder,
         )
 
     # @override
     def forward(self, context: th.Tensor) -> th.Tensor:
-        encoded = self._encoder(context)
-        decoded = self._decoder(encoded)
+        linear_encoded_context = self._linear_encode(context)
 
-        return decoded
+        encoded = self._encoder(linear_encoded_context)
+        decoded = self._decoder(
+            tgt=th.zeros_like(linear_encoded_context), memory=encoded
+        )
+
+        return self._linear_decode(decoded)
+
+    def encode(self, context: th.Tensor) -> th.Tensor:
+        return self._encoder(self._linear_encode(context))
