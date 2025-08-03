@@ -9,6 +9,8 @@ import numpy as np
 import random
 from stable_baselines3.common.utils import set_random_seed
 
+from state_embedding.env import ContextualizedEnv
+
 SEED = 0
 
 
@@ -23,6 +25,11 @@ def hello() -> None:
 
     # vec_env = make_vec_env(lambda: gym.make('MinAtar/Seaquest-v1'), n_envs=2)
 
-    dqn = DQNWithEmbedLoss("MlpPolicy", env)
+    # TODO: Insert embedding module
+    embedding_module = None
+
+    context_env = ContextualizedEnv(env, embedding_module, 10)
+
+    dqn = DQNWithEmbedLoss("MlpPolicy", context_env)
     dqn.learn(total_timesteps=10000)
     print("Hello from hello-world!")
