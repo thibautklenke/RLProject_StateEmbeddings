@@ -17,6 +17,8 @@ class ContextualizedReplayBuffer(ReplayBuffer):
 
     # [buffer_size, window_size, n_envs, *obs_shape]
     contexts: np.ndarray
+    # [buffer_size, n_envs]
+    contexts_length: np.ndarray
 
     def __init__(
         self,
@@ -51,6 +53,7 @@ class ContextualizedReplayBuffer(ReplayBuffer):
             (self.buffer_size, self._window_size, self.n_envs, *self.obs_shape),
             dtype=observation_space.dtype,
         )
+        self.contexts_length = np.zeros((self.buffer_size, self.n_envs), dtype=np.int64)
 
     def add(
         self,
@@ -74,6 +77,7 @@ class ContextualizedReplayBuffer(ReplayBuffer):
 
         # Put current context into the replay buffer
         self.contexts[self.pos, :] = self._context_tracker
+        self.contexts_length[self.pos, :] = self._context_index + 1
 
         # Increment window index for each environment
         for env in range(self.n_envs):
@@ -96,7 +100,7 @@ class ContextualizedReplayBuffer(ReplayBuffer):
 
     def sample_with_context(
         self, batch_size: int, env: Optional[VecNormalize] = None
-    ) -> Tuple[ReplayBufferSamples, th.Tensor]:
+    ) -> Tuple[ReplayBufferSamples, th.Tensor, th.Tensor]:
         # Yes, we are smart
         if not self.optimize_memory_usage:
             upper_bound = self.buffer_size if self.full else self.pos
@@ -115,7 +119,7 @@ class ContextualizedReplayBuffer(ReplayBuffer):
 
     def _get_samples_with_context(
         self, batch_inds: np.ndarray, env: Optional[VecNormalize] = None
-    ) -> Tuple[ReplayBufferSamples, th.Tensor]:
+    ) -> Tuple[ReplayBufferSamples, th.Tensor, th.Tensor]:
         # Sample randomly the env idx
         env_indices = np.random.randint(0, high=self.n_envs, size=(len(batch_inds),))
 
@@ -144,6 +148,9 @@ class ContextualizedReplayBuffer(ReplayBuffer):
             ),
         )
         contexts = self.contexts[batch_inds, :, env_indices, :]
-        return ReplayBufferSamples(*tuple(map(self.to_torch, data))), self.to_torch(
-            contexts
+        contexts_length = self.contexts_length[batch_inds, env_indices]
+        return (
+            ReplayBufferSamples(*tuple(map(self.to_torch, data))),
+            self.to_torch(contexts),
+            self.to_torch(contexts_length),
         )
