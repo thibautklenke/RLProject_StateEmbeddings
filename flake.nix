@@ -80,7 +80,6 @@
 
                   buildPhase = ''
                     runHook preBuild
-                    #pytest --cov state_embedding --cov-report html
                     ${cmd}
                     runHook postBuild
                   '';
@@ -95,7 +94,7 @@
               in 
               (old.tests or { })
               // {
-                pytest = test-derivation "pytest";
+                pytest = test-derivation "pytest --no-cov";
                 pytest-cov = test-derivation "pytest --cov state_embedding --cov-report html";
               };
           };
@@ -134,7 +133,7 @@
       };
 
       devShells.x86_64-linux = {
-        default = self.devShells.x86_64-linux.uv2nix;
+        default = self.devShells.x86_64-linux.impure;
 
         impure = pkgs.mkShell {
           packages = [
