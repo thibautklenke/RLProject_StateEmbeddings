@@ -25,7 +25,6 @@ class ContextualizedReplayBuffer(ReplayBuffer):
         action_space: spaces.Space,
         device: Union[th.device, str] = "auto",
         n_envs: int = 1,
-        optimize_memory_usage: bool = False,
         handle_timeout_termination: bool = True,
         window_size: int = 2,
     ):
@@ -35,8 +34,8 @@ class ContextualizedReplayBuffer(ReplayBuffer):
             action_space,
             device,
             n_envs,
-            optimize_memory_usage,
-            handle_timeout_termination,
+            optimize_memory_usage=False,  # do not support that use case
+            handle_timeout_termination=handle_timeout_termination,
         )
 
         self._window_size: int = window_size
@@ -61,11 +60,9 @@ class ContextualizedReplayBuffer(ReplayBuffer):
         done: np.ndarray,
         infos: list[dict[str, Any]],
     ):
-        # Reshape needed when using multiple envs with discrete observations
-        # as numpy cannot broadcast (n_discrete,) to (n_discrete, 1)
-        if isinstance(self.observation_space, spaces.Discrete):
-            obs = obs.reshape((self.n_envs, *self.obs_shape))
-            next_obs = next_obs.reshape((self.n_envs, *self.obs_shape))
+        # Reshape to make sure n_envs dimension is correctly preserved
+        obs = obs.reshape((self.n_envs, *self.obs_shape))
+        next_obs = next_obs.reshape((self.n_envs, *self.obs_shape))
 
         # Write current observations to context tracker
         for env in range(self.n_envs):
@@ -79,10 +76,9 @@ class ContextualizedReplayBuffer(ReplayBuffer):
         for env in range(self.n_envs):
             # If the index is at the end of the window, shift all contexts
             if self._context_index[env] == self._window_size - 1:
-                for idx in range(self._window_size - 1):
-                    self._context_tracker[idx, env, :] = self._context_tracker[
-                        idx + 1, env, :
-                    ]
+                self._context_tracker[:, env, :] = np.roll(
+                    self._context_tracker[:, env, :], -1, axis=0
+                )
             else:
                 self._context_index[env] += 1
 
@@ -97,20 +93,9 @@ class ContextualizedReplayBuffer(ReplayBuffer):
     def sample_with_context(
         self, batch_size: int, env: Optional[VecNormalize] = None
     ) -> Tuple[ReplayBufferSamples, th.Tensor]:
-        # Yes, we are smart
-        if not self.optimize_memory_usage:
-            upper_bound = self.buffer_size if self.full else self.pos
-            batch_inds = np.random.randint(0, upper_bound, size=batch_size)
-            return self._get_samples_with_context(batch_inds, env=env)
+        upper_bound = self.buffer_size if self.full else self.pos
+        batch_inds = np.random.randint(0, upper_bound, size=batch_size)
 
-        # Do not sample the element with index `self.pos` as the transitions is invalid
-        # (we use only one array to store `obs` and `next_obs`)
-        if self.full:
-            batch_inds = (
-                np.random.randint(1, self.buffer_size, size=batch_size) + self.pos
-            ) % self.buffer_size
-        else:
-            batch_inds = np.random.randint(0, self.pos, size=batch_size)
         return self._get_samples_with_context(batch_inds, env=env)
 
     def _get_samples_with_context(
@@ -119,15 +104,9 @@ class ContextualizedReplayBuffer(ReplayBuffer):
         # Sample randomly the env idx
         env_indices = np.random.randint(0, high=self.n_envs, size=(len(batch_inds),))
 
-        if self.optimize_memory_usage:
-            next_obs = self._normalize_obs(
-                self.observations[(batch_inds + 1) % self.buffer_size, env_indices, :],
-                env,
-            )
-        else:
-            next_obs = self._normalize_obs(
-                self.next_observations[batch_inds, env_indices, :], env
-            )
+        next_obs = self._normalize_obs(
+            self.next_observations[batch_inds, env_indices, :], env
+        )
 
         data = (
             self._normalize_obs(self.observations[batch_inds, env_indices, :], env),
