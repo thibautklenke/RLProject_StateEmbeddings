@@ -9,6 +9,3 @@ def hello() -> None:
     dqn = DQNWithEmbedLoss("MlpPolicy", env)
     dqn.learn(total_timesteps=1000)
     print("Hello from hello-world!")
-
-
-hello()
