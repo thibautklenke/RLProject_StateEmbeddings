@@ -35,7 +35,7 @@ class ContextualizedEnv(Env):
             self._current_context[-1] = obs
 
         if self._embedding_module is not None:
-            embedding = self._embedding_module(self._current_context)
+            embedding = self._embedding_module.encode(self._current_context)
         else:
             embedding = obs
 
