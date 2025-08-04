@@ -103,7 +103,7 @@ def test_simple_oversample():
     buffer.add(obs, obs_next, action, np.zeros(1), [False], [])
 
     bs = 5
-    replay_data, contexts = buffer.sample_with_context(batch_size=bs)
+    replay_data, contexts, lengths = buffer.sample_with_context(batch_size=bs)
     assert (replay_data.observations == np.stack([obs] * bs)).all()
     assert (replay_data.next_observations == np.stack([obs_next] * bs)).all()
     assert (replay_data.actions == np.stack([action] * bs)).all()
