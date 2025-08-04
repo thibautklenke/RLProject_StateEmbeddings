@@ -9,10 +9,16 @@ dependencies = [
     "minatar>=1.0.15",
     "pre-commit>=4.2.0",
     "stable-baselines3>=2.6.0",
+    "tbparse>=0.0.9",
+    "tensorboard>=2.20.0",
+    "uv>=0.8.4",
 ]
 
 [project.scripts]
 hello = "state_embedding:hello"
+main = "main:call_eval_loop"
+graphs = "graphs:graphs"
+
 
 [build-system]
 requires = ["hatchling"]
