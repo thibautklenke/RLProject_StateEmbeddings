@@ -78,6 +78,15 @@ class DQNWithEmbedLoss(DQN):
             embedding_size=4,
         )
 
+        # Add _embedding_modules parameter() to self.policy.optimizer
+        # to train them as well
+        self.policy.optimizer.add_param_group(
+            {
+                "params": self._embedding_module.parameters(),
+                "name": "embedding_module",
+            }
+        )
+
     # Copied from super().train(), modified to include reconstruction loss of special state module
     # @override
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
@@ -100,7 +109,8 @@ class DQNWithEmbedLoss(DQN):
 
             with th.no_grad():
                 # Compute the next Q-values using the target network
-                next_q_values = self.q_net_target(replay_data.next_observations)
+                #next_q_values = self.q_net_target(replay_data.next_observations)
+                next_q_values = self.q_net_target(self._embedding_module.encode(replay_data.next_observations))
                 # Follow greedy policy: use the one with the highest value
                 next_q_values, _ = next_q_values.max(dim=1)
                 # Avoid potential broadcast issue
@@ -111,16 +121,13 @@ class DQNWithEmbedLoss(DQN):
                     + (1 - replay_data.dones) * self.gamma * next_q_values
                 )
 
-            # Update embedding module
-            # decoded = self._embedding_module(context)
-            # loss_decoded = F.mse_loss(context, decoded)
-            # print(loss_decoded)
-
-            # self.policy.optimizer.zero_grad()
-            # loss_decoded.backward()
-
             # Get current Q-values estimates
-            current_q_values = self.q_net(replay_data.observations)
+            encoded = self._embedding_module.encode(replay_data.observations)
+            current_q_values = self.q_net(encoded)
+
+            # Update embedding module
+            decoded = self._embedding_module.decode(replay_data.observations, encoded)
+            loss_decoded = F.mse_loss(replay_data.observations, decoded)
 
             # Retrieve the q-values for the actions from the replay buffer
             current_q_values = th.gather(
@@ -133,8 +140,11 @@ class DQNWithEmbedLoss(DQN):
 
             # Optimize the policy
             self.policy.optimizer.zero_grad()
-            total_loss = loss
-            total_loss.backward()
+            print(f"Loss: {loss.item():.5f}, Decoded Loss: {loss_decoded.item():.5f}")
+            #print(self._embedding_module._encoder.layers[0].self_attn.in_proj_weight)
+            loss_decoded.backward()
+            #total_loss = loss + th.tensor(999) * loss_decoded
+            #total_loss.backward()
             # loss.backward()
             # Clip gradient norm
             nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
@@ -160,7 +170,7 @@ class StateEmbedNetwork(nn.Module):
         super().__init__()
 
         self._window_size = window_size  # Window size for contextual embedding
-        num_features = np.prod(observation_space.shape) * self._window_size
+        num_features = np.prod(observation_space.shape[1:])
 
         self._embedding_size = embedding_size
 
@@ -192,6 +202,13 @@ class StateEmbedNetwork(nn.Module):
         return self._linear_decode(decoded)
 
     def encode(self, context: th.Tensor) -> th.Tensor:
-        with th.no_grad():
-            encoded = self._encoder(self._linear_encode(context))
+        encoded = self._encoder(self._linear_encode(context)) #[ N, S, E ]
+        # [N, S, E]
         return self._sigmoid(encoded)
+
+    def decode(self, context: th.Tensor, encoded: th.Tensor) -> th.Tensor:
+        decoded = self._decoder(
+            tgt=th.zeros_like(context), memory=encoded
+        )
+
+        return self._linear_decode(decoded)
