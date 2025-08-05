@@ -61,6 +61,44 @@
             })
           ];
         });
+
+        state-embedding = _prev.state-embedding.overrideAttrs(old: {
+          passthru = old.passthru // {
+            tests =
+              let 
+                virtualenv = _final.mkVirtualEnv "testing-pytest-env" {
+                  state-embedding = [ "dev" ];
+                };
+
+                test-derivation = cmd: pkgs.stdenv.mkDerivation {
+                  name = "${_final.state-embedding.name}-pytest";
+                  inherit (_final.state-embedding) src;
+                  nativeBuildInputs = [
+                    virtualenv
+                  ];
+                  dontConfigure = true;
+
+                  buildPhase = ''
+                    runHook preBuild
+                    ${cmd}
+                    runHook postBuild
+                  '';
+
+                  installPhase = ''
+                    runHook preInstall
+                    mv htmlcov $out || true
+                    touch $out
+                    runHook postInstall
+                  '';
+                };
+              in 
+              (old.tests or { })
+              // {
+                pytest = test-derivation "pytest --no-cov";
+                pytest-cov = test-derivation "pytest --cov state_embedding --cov-report html";
+              };
+          };
+        });
       };
 
       pkgs = nixpkgs.legacyPackages.x86_64-linux;
@@ -81,6 +119,10 @@
 
     in
     {
+      checks.x86_64-linux = {
+        inherit (pythonSet.state-embedding.passthru.tests) pytest pytest-cov;
+      };
+
       packages.x86_64-linux.default = pythonSet.mkVirtualEnv "state-embedding-env" workspace.deps.default;
 
       apps.x86_64-linux = {
@@ -91,7 +133,7 @@
       };
 
       devShells.x86_64-linux = {
-        default = self.devShells.x86_64-linux.uv2nix;
+        default = self.devShells.x86_64-linux.impure;
 
         impure = pkgs.mkShell {
           packages = [
