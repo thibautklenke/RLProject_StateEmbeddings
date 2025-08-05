@@ -8,7 +8,6 @@ class ContextEnv(Env):
     def __init__(
         self,
         env: Env,
-        embedding_module: StateEmbedNetwork = None,
         window_size: int = 5,
     ) -> None:
         super().__init__()
@@ -21,7 +20,6 @@ class ContextEnv(Env):
         self.render_mode = self._env.render_mode
         self.spec = self._env.spec
 
-        self._embedding_module = embedding_module
         self._window_size = window_size
 
         low = np.stack([self._env.observation_space.low] * self._window_size)
@@ -74,12 +72,37 @@ class EmbeddingEnv(Env):
         self,
         env: Env,
         embedding_module: StateEmbedNetwork = None,
-        window_size: int = 5,
+        window_size: int = 5
     ) -> None:
-        super().__init__(env, embedding_module, window_size)
+        super().__init__()
+
+        self._env = ContextEnv(env, window_size)
+
+        self.action_space = self._env.action_space
+
+        self.metadata = self._env.metadata
+        self.render_mode = self._env.render_mode
+        self.spec = self._env.spec
+
+        self._embedding_module = embedding_module
 
         self.observation_space = spaces.Box(
             0, 1, (self._embedding_module._embedding_size,)
         )
 
-        self._current_context = th.zeros(window_size, *self.observation_space.shape)
+        self._embedding_module = embedding_module
+    
+    def step(self, action):
+        step_result = self._env.step(action)
+        obs = th.tensor(step_result[0])
+
+        return self._embedding_module.encode(obs)
+    
+    def reset(self, seed=None, options=None):
+        return self._env.reset(seed=seed, options=options)
+
+    def render(self):
+        return self._env.render()
+
+    def close(self):
+        return self._env.close()
