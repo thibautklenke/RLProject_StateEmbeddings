@@ -99,7 +99,9 @@ class EmbeddingEnv(Env):
         return self._embedding_module.encode(obs)
     
     def reset(self, seed=None, options=None):
-        return self._env.reset(seed=seed, options=options)
+        reset_result = self._env.reset(seed=seed, options=options)
+        encoded_init = self._embedding_module.encode(th.tensor(reset_result[0]))
+        return encoded_init, *reset_result[1:]
 
     def render(self):
         return self._env.render()
