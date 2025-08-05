@@ -47,6 +47,9 @@ class ContextEnv(Env):
             self._current_context = th.roll(self._current_context, shifts=-1, dims=0)
             self._current_context[-1] = obs
 
+        # Save lengths so tensor may be correctly truncated
+        step_result[4]["context_length"] = self._insert_idx
+
         return self._current_context, *step_result[1:]
 
     def reset(self, seed=None, options=None):
@@ -92,8 +95,11 @@ class EmbeddingEnv(Env):
 
     def step(self, action):
         step_result = self._env.step(action)
-        obs = step_result[0].flatten().unsqueeze(0)
+        # obs.shape = [window_size, *observation_space.shape]
+        obs = step_result[0].flatten(dim=1).unsqueeze(0)
+        # obs.shape = [1, window_size, features]
         return self._embedding_module.encode(obs).squeeze(0), *step_result[1:]
+        # return.shape [features]
 
     def reset(self, seed=None, options=None):
         reset_result = self._env.reset(seed=seed, options=options)
