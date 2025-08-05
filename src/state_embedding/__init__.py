@@ -30,7 +30,7 @@ def hello() -> None:
     # TODO: Insert embedding module
     embedding_module = StateEmbedNetwork(env.observation_space, embedding_size=8)
 
-    context_env = EmbeddingEnv(env, embedding_module, 5)
+    context_env = ContextEnv(env, embedding_module, 5)
 
     dqn = DQNWithEmbedLoss("MlpPolicy", context_env)
     dqn.learn(total_timesteps=10000, callback=ProgressBarCallback())

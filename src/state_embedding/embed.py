@@ -39,10 +39,10 @@ class DQNWithEmbedLoss(DQN):
         _init_setup_model: bool = True,
         window_size: int = 2,  # Embedding context
     ):
-        if replay_buffer_kwargs is None:
-            replay_buffer_kwargs = {"window_size": window_size}
-        else:
-            replay_buffer_kwargs["window_size"] = window_size
+        # if replay_buffer_kwargs is None:
+        #     replay_buffer_kwargs = {"window_size": window_size}
+        # else:
+        #     replay_buffer_kwargs["window_size"] = window_size
 
         super().__init__(
             policy,
@@ -55,7 +55,7 @@ class DQNWithEmbedLoss(DQN):
             gamma,
             train_freq,
             gradient_steps,
-            ContextualizedReplayBuffer,
+            None,
             replay_buffer_kwargs,
             optimize_memory_usage,
             target_update_interval,
@@ -90,13 +90,13 @@ class DQNWithEmbedLoss(DQN):
         losses = []
         for _ in range(gradient_steps):
             # Sample replay buffer
-            replay_data, context, lengths = self.replay_buffer.sample_with_context(
+            replay_data = self.replay_buffer.sample(
                 batch_size, env=self._vec_normalize_env
             )  # type: ignore[union-attr]
 
             # [batch_size, window_size, *obs]
-            context = th.flatten(context, start_dim=2)
-            context = context.to(th.float32)
+            # context = th.flatten(context, start_dim=2)
+            # context = context.to(th.float32)
             # [batch_size, window_size, num_features]
 
             with th.no_grad():
@@ -113,9 +113,9 @@ class DQNWithEmbedLoss(DQN):
                 )
 
             # Update embedding module
-            decoded = self._embedding_module(context)
-            loss_decoded = F.mse_loss(context, decoded)
-            print(loss_decoded)
+            # decoded = self._embedding_module(context)
+            # loss_decoded = F.mse_loss(context, decoded)
+            # print(loss_decoded)
 
             # self.policy.optimizer.zero_grad()
             # loss_decoded.backward()
@@ -134,7 +134,7 @@ class DQNWithEmbedLoss(DQN):
 
             # Optimize the policy
             self.policy.optimizer.zero_grad()
-            total_loss = loss_decoded + loss
+            total_loss = loss
             total_loss.backward()
             # loss.backward()
             # Clip gradient norm
