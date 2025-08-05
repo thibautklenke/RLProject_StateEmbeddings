@@ -34,7 +34,7 @@ class ContextEnv(Env):
         )
         
         self._insert_idx = 0
-        self._current_context = th.zeros(self._window_size, *self.observation_space.shape)
+        self._current_context = th.zeros(*self.observation_space.shape)
 
     def step(self, action):
         step_result = self._env.step(action)
@@ -55,7 +55,7 @@ class ContextEnv(Env):
 
         self._insert_idx = 0
 
-        self._current_context = th.zeros(self._window_size, *self.observation_space.shape)
+        self._current_context = th.zeros(*self.observation_space.shape)
         self._current_context[0] = th.tensor(reset_result[0])
 
         return self._current_context, *reset_result[1:]
