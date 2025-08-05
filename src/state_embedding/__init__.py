@@ -8,6 +8,7 @@ import torch as th
 import numpy as np
 import random
 from stable_baselines3.common.utils import set_random_seed
+from stable_baselines3.common.callbacks import ProgressBarCallback
 
 from state_embedding.env import ContextualizedEnv
 
@@ -28,8 +29,8 @@ def hello() -> None:
     # TODO: Insert embedding module
     embedding_module = None
 
-    context_env = ContextualizedEnv(env, embedding_module, 10)
+    # context_env = ContextualizedEnv(env, embedding_module, 10)
 
-    dqn = DQNWithEmbedLoss("MlpPolicy", context_env)
-    dqn.learn(total_timesteps=10000)
+    dqn = DQNWithEmbedLoss("MlpPolicy", env)
+    dqn.learn(total_timesteps=10000, callback=ProgressBarCallback())
     print("Hello from hello-world!")

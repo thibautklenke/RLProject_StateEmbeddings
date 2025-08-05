@@ -74,7 +74,9 @@ class DQNWithEmbedLoss(DQN):
 
         self._window_size: int = window_size
         self._embedding_module = StateEmbedNetwork(
-            observation_space=self.observation_space, window_size=window_size
+            observation_space=self.observation_space,
+            window_size=window_size,
+            embedding_size=8,
         )
 
     # Copied from super().train(), modified to include reconstruction loss of special state module
@@ -88,7 +90,7 @@ class DQNWithEmbedLoss(DQN):
         losses = []
         for _ in range(gradient_steps):
             # Sample replay buffer
-            replay_data, context = self.replay_buffer.sample_with_context(
+            replay_data, context, lengths = self.replay_buffer.sample_with_context(
                 batch_size, env=self._vec_normalize_env
             )  # type: ignore[union-attr]
 
@@ -115,8 +117,8 @@ class DQNWithEmbedLoss(DQN):
             loss_decoded = F.mse_loss(context, decoded)
             print(loss_decoded)
 
-            self.policy.optimizer.zero_grad()
-            loss_decoded.backward()
+            # self.policy.optimizer.zero_grad()
+            # loss_decoded.backward()
 
             # Get current Q-values estimates
             current_q_values = self.q_net(replay_data.observations)
@@ -132,7 +134,9 @@ class DQNWithEmbedLoss(DQN):
 
             # Optimize the policy
             self.policy.optimizer.zero_grad()
-            loss.backward()
+            total_loss = loss_decoded + loss
+            total_loss.backward()
+            # loss.backward()
             # Clip gradient norm
             nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
             self.policy.optimizer.step()

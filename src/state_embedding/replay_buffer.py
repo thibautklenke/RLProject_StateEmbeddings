@@ -26,10 +26,12 @@ class ContextualizedReplayBuffer(ReplayBuffer):
         observation_space: spaces.Space,
         action_space: spaces.Space,
         device: Union[th.device, str] = "auto",
+        optimize_memory_usage: bool = False,
         n_envs: int = 1,
         handle_timeout_termination: bool = True,
         window_size: int = 2,
     ):
+        assert not optimize_memory_usage
         super().__init__(
             buffer_size,
             observation_space,
