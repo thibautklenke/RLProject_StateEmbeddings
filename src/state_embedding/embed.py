@@ -37,7 +37,7 @@ class DQNWithEmbedLoss(DQN):
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
         _init_setup_model: bool = True,
-        window_size: int = 5,  # Embedding context
+        window_size: int = 2,  # Embedding context
     ):
         if replay_buffer_kwargs is None:
             replay_buffer_kwargs = {"window_size": window_size}
@@ -76,7 +76,7 @@ class DQNWithEmbedLoss(DQN):
         self._embedding_module = StateEmbedNetwork(
             observation_space=self.observation_space,
             window_size=window_size,
-            embedding_size=8,
+            embedding_size=4,
         )
 
     # Copied from super().train(), modified to include reconstruction loss of special state module
@@ -152,19 +152,22 @@ class StateEmbedNetwork(nn.Module):
     def __init__(
         self,
         observation_space: spaces.Space,
-        n_head=8,
+        n_head=2,
         n_layers_encoder=6,
         n_layers_decoder=6,
         window_size: int = 10,
-        embedding_size=2**10,
+        embedding_size=2**2,
     ):
         super().__init__()
 
         self._window_size = window_size  # Window size for contextual embedding
         num_features = np.prod(observation_space.shape)
 
+        self._embedding_size = embedding_size
+
         self._linear_encode = nn.Linear(num_features, embedding_size)
         self._linear_decode = nn.Linear(embedding_size, num_features)
+        self._sigmoid = nn.Sigmoid()  # Force output components to be in [0, 1]
 
         self._encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(embedding_size, n_head, batch_first=True),
@@ -181,6 +184,8 @@ class StateEmbedNetwork(nn.Module):
         linear_encoded_context = self._linear_encode(context)
 
         encoded = self._encoder(linear_encoded_context)
+        encoded = self._sigmoid(encoded)  # Apply sigmoid
+
         decoded = self._decoder(
             tgt=th.zeros_like(linear_encoded_context), memory=encoded
         )
@@ -188,4 +193,5 @@ class StateEmbedNetwork(nn.Module):
         return self._linear_decode(decoded)
 
     def encode(self, context: th.Tensor) -> th.Tensor:
-        return self._encoder(self._linear_encode(context))
+        encoded = self._encoder(self._linear_encode(context))
+        return self._sigmoid(encoded)

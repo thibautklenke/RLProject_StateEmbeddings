@@ -1,23 +1,34 @@
 from gymnasium import Env
 import torch as th
-import torch.nn as nn
+from gymnasium import spaces
+from state_embedding.embed import StateEmbedNetwork
 
 
 class ContextualizedEnv(Env):
     def __init__(
-        self, env: Env, embedding_module: nn.Module = None, window_size: int = 5
+        self,
+        env: Env,
+        embedding_module: StateEmbedNetwork = None,
+        window_size: int = 5,
     ) -> None:
         super().__init__()
 
         self._env = env
 
         self.action_space = self._env.action_space
-        self.observation_space = self._env.observation_space
+
         self.metadata = self._env.metadata
         self.render_mode = self._env.render_mode
         self.spec = self._env.spec
 
         self._embedding_module = embedding_module
+
+        self.observation_space = spaces.Box(
+            0, 1, (self._embedding_module._embedding_size,)
+        )
+
+        print(self.observation_space.shape)
+
         self._window_size = window_size
         self._current_context = th.zeros(window_size, *self.observation_space.shape)
         self._insert_idx = 0
@@ -60,3 +71,41 @@ class ContextualizedEnv(Env):
 
     def close(self):
         return self._env.close()
+
+
+class ContextEnv(ContextualizedEnv):
+    """Env to be used with context as states, i.e. (window_size, *obs.shape)"""
+
+    def __init__(
+        self,
+        env: Env,
+        embedding_module: StateEmbedNetwork = None,
+        window_size: int = 5,
+    ) -> None:
+        super().__init__(env, embedding_module, window_size)
+
+        self.observation_space = spaces.Box(
+            low=self._env.observation_space.low,
+            high=self._env.observation_space.high,
+            shape=(self._window_size, *self._env.observation_space.shape),
+        )
+
+        self._current_context = th.zeros(window_size, *self.observation_space.shape)
+
+
+class EmbeddingEnv(ContextualizedEnv):
+    """Env to be used with embeddings as states, i.e. (embedding_size, )"""
+
+    def __init__(
+        self,
+        env: Env,
+        embedding_module: StateEmbedNetwork = None,
+        window_size: int = 5,
+    ) -> None:
+        super().__init__(env, embedding_module, window_size)
+
+        self.observation_space = spaces.Box(
+            0, 1, (self._embedding_module._embedding_size,)
+        )
+
+        self._current_context = th.zeros(window_size, *self.observation_space.shape)
