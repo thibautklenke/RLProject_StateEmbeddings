@@ -7,7 +7,6 @@ import numpy as np
 from gymnasium import spaces
 from typing import Optional, Union, Any
 from stable_baselines3.common.type_aliases import GymEnv, Schedule
-from state_embedding.replay_buffer import ContextualizedReplayBuffer
 
 
 class DQNWithEmbedLoss(DQN):
@@ -161,7 +160,7 @@ class StateEmbedNetwork(nn.Module):
         super().__init__()
 
         self._window_size = window_size  # Window size for contextual embedding
-        num_features = np.prod(observation_space.shape)
+        num_features = np.prod(observation_space.shape) * self._window_size
 
         self._embedding_size = embedding_size
 
