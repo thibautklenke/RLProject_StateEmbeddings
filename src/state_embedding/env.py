@@ -2,7 +2,7 @@ from gymnasium import Env
 import torch as th
 from gymnasium import spaces
 from state_embedding.embed import StateEmbedNetwork
-
+import numpy as np
 
 class ContextualizedEnv(Env):
     def __init__(
@@ -26,8 +26,6 @@ class ContextualizedEnv(Env):
         self.observation_space = spaces.Box(
             0, 1, (self._embedding_module._embedding_size,)
         )
-
-        print(self.observation_space.shape)
 
         self._window_size = window_size
         self._current_context = th.zeros(window_size, *self.observation_space.shape)
@@ -84,13 +82,31 @@ class ContextEnv(ContextualizedEnv):
     ) -> None:
         super().__init__(env, embedding_module, window_size)
 
+        low = np.stack([self._env.observation_space.low] * self._window_size)
+        high = np.stack([self._env.observation_space.high] * self._window_size)
+
         self.observation_space = spaces.Box(
-            low=self._env.observation_space.low,
-            high=self._env.observation_space.high,
+            low=low,
+            high=high,
             shape=(self._window_size, *self._env.observation_space.shape),
         )
 
         self._current_context = th.zeros(window_size, *self.observation_space.shape)
+    
+
+    def step(self, action):
+        step_result = self._env.step(action)
+        obs = th.tensor(step_result[0])
+
+        # Append, no roll
+        if self._insert_idx < self._window_size:
+            self._current_context[self._insert_idx] = obs
+            self._insert_idx += 1
+        else:  # Roll all elements up by one, insert at last position
+            self._current_context = th.roll(self._current_context, shifts=-1, dims=0)
+            self._current_context[-1] = obs
+
+        return self._current_context, *step_result[1:]
 
 
 class EmbeddingEnv(ContextualizedEnv):
