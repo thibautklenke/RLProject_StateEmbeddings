@@ -100,7 +100,7 @@ class EmbeddingEnv(Env):
     
     def reset(self, seed=None, options=None):
         reset_result = self._env.reset(seed=seed, options=options)
-        encoded_init = self._embedding_module.encode(th.tensor(reset_result[0]))
+        encoded_init = self._embedding_module.encode(reset_result[0])
         return encoded_init, *reset_result[1:]
 
     def render(self):

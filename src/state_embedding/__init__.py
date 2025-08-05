@@ -27,10 +27,12 @@ def hello() -> None:
 
     # vec_env = make_vec_env(lambda: gym.make('MinAtar/Seaquest-v1'), n_envs=2)
 
-    # TODO: Insert embedding module
-    embedding_module = StateEmbedNetwork(env.observation_space, embedding_size=8)
+    window_size = 5
 
-    context_env = EmbeddingEnv(env, embedding_module, 5)
+    # TODO: Insert embedding module
+    embedding_module = StateEmbedNetwork(env.observation_space, embedding_size=8, window_size=window_size)
+
+    context_env = EmbeddingEnv(env, embedding_module, window_size)
 
     dqn = DQNWithEmbedLoss("MlpPolicy", context_env)
     dqn.learn(total_timesteps=10000, callback=ProgressBarCallback())

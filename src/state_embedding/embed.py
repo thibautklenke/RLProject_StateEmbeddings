@@ -193,5 +193,6 @@ class StateEmbedNetwork(nn.Module):
         return self._linear_decode(decoded)
 
     def encode(self, context: th.Tensor) -> th.Tensor:
-        encoded = self._encoder(self._linear_encode(context))
+        with th.no_grad():
+            encoded = self._encoder(self._linear_encode(context))
         return self._sigmoid(encoded)
