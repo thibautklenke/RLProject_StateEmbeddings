@@ -10,7 +10,7 @@ from stable_baselines3.dqn import DQN
 from state_embedding.env import EmbeddingEnv
 from state_embedding.train import pretrain_combined, pretrain_qloss
 
-from src.state_embedding.env import ContextEnv
+from state_embedding.env import ContextEnv
 
 SEED = 0
 
