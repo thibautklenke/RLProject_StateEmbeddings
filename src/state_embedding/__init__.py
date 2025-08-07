@@ -10,6 +10,8 @@ from stable_baselines3.dqn import DQN
 from state_embedding.env import EmbeddingEnv
 from state_embedding.train import pretrain_combined, pretrain_qloss
 
+from src.state_embedding.env import ContextEnv
+
 SEED = 0
 
 
@@ -37,7 +39,7 @@ def hello() -> None:
     embedding_net.eval()
 
     embedding_env = EmbeddingEnv(
-        env=env, embedding_module=embedding_net, window_size=embedding_net.window_size
+        env=ContextEnv(env, 5), embedding_module=embedding_net, window_size=embedding_net.window_size
     )
     dqn = DQN("MlpPolicy", embedding_env)
     dqn.learn(total_timesteps=1000, progress_bar=True)

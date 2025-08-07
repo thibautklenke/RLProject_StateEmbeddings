@@ -70,11 +70,11 @@ class EmbeddingEnv(Env):
     """Env to be used with embeddings as states, i.e. (embedding_size, )"""
 
     def __init__(
-        self, env: Env, embedding_module: StateEmbedding, window_size: int = 5
+        self, env: ContextEnv, embedding_module: StateEmbedding, window_size: int = 5
     ) -> None:
         super().__init__()
 
-        self._env = ContextEnv(env, window_size)
+        self._env = env
 
         self.action_space = self._env.action_space
 
