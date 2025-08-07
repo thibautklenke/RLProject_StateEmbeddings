@@ -11,6 +11,7 @@ from stable_baselines3.dqn import DQN
 from state_embedding.embedding import StateEmbedding
 from state_embedding.env import EmbeddingEnv, ContextEnv
 from state_embedding.train import pretrain_combined, pretrain_qloss
+from envs.seaquest_markov import SeaquestNoMarkov
 
 pretrain_types = [
     ("pretrain_combined", pretrain_combined),
@@ -18,30 +19,30 @@ pretrain_types = [
 ]
 
 train_algorithm_types = [
-    ("DQN", DQN),
+    #("DQN", DQN),
     ("PPO", PPO),
 ]
 
 embedding_kwargs={
-    "features_dim": 512,
-    "window_size": 2,
+    "features_dim": 256,
+    "window_size": 15,
     "n_head": 2,
     "n_layers": 4,
 }
 
 env_name = "MinAtar/Seaquest-v1"
-env_name_short = "seaquest"
+env_name_short = "seaquest_markov"
 
 n_pretrain = 300
-n_train = 5_000_000
+n_train = 4_000_000
 
 def pretrain(seed) -> None:
-    env = gym.make(env_name)
+    env = SeaquestNoMarkov(gym.make(env_name))
     env.reset(seed=seed)
     device = "cuda" if th.cuda.is_available() else "cpu"
 
     # Separate evaluation env
-    eval_env = gym.make(env_name)
+    eval_env = SeaquestNoMarkov(gym.make(env_name))
     # Use deterministic actions for evaluation
     eval_callback = EvalCallback(eval_env, best_model_save_path=f"./logs/{env_name_short}",
                                  log_path="./logs/", eval_freq=500,
@@ -66,7 +67,7 @@ def train(seed) -> None:
     for pretrain_name, _ in pretrain_types:
         for train_algorithm_name, train_algorithm in train_algorithm_types:
             # Separate evaluation env
-            eval_env = gym.make(env_name)
+            eval_env = SeaquestNoMarkov(gym.make(env_name))
             # Use deterministic actions for evaluation
             eval_callback = EvalCallback(eval_env, best_model_save_path=f"./logs/{env_name_short}/",
                                          log_path="./logs/", eval_freq=500,
@@ -77,7 +78,7 @@ def train(seed) -> None:
             embedding_net.to(device)
             embedding_net.eval()
 
-            env = gym.make(env_name)
+            env = SeaquestNoMarkov(gym.make(env_name))
             env.reset(seed=seed+1)
 
             embedding_env = EmbeddingEnv(

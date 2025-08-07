@@ -2,6 +2,7 @@ import numpy as np
 import breakout_experiment as be
 import cartpole_experiment as ce
 import seaquest_experiment as se
+import seaquestmarkov_experiment as sem
 import random
 import gymnasium as gym
 import numpy as np
@@ -25,8 +26,8 @@ def main() -> None:
         np.random.seed(SEED)
         random.seed(SEED)
 
-        se.pretrain(SEED)
-        se.train(SEED)
+        ce.pretrain(SEED)
+        ce.train(SEED)
 
 
 if __name__ == '__main__':

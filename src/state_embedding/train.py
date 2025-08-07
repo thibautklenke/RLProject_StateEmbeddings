@@ -19,6 +19,7 @@ def pretrain_qloss(
     total_timesteps: int = 10000,
     tensorboard_log: str = "./logs/",
     callbacks: list[BaseCallback] = [ProgressBarCallback()],
+    device: str = "cpu",
 ) -> DQN:
     window_size = embedding_kwargs.get("window_size", 5)
     dqn = DQN(
@@ -28,6 +29,7 @@ def pretrain_qloss(
         policy_kwargs={
             "feature_extractor_kwargs": embedding_kwargs,
         }.update(policy_kwargs or {}),
+        device=device
     )
     dqn.learn(total_timesteps=total_timesteps, callback=callbacks)
     return dqn
