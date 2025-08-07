@@ -86,19 +86,25 @@ class StateDecoder(nn.Module):
         x = self._decoder_decompress(embedding)
         # [bs, self._in_dim]
 
-        # Use greedy decoding to reconstruct sequence
         memory = x.unsqueeze(dim=1)
-        token_shape = (x.shape[0], 1, self._in_dim)
-        tgt = th.zeros(size=token_shape)
-        # [bs, 1, self._in_dim]
-        for i in range(self._window_size):
-            recon = self._decoder(tgt, memory)
-            # [bs, i, self._in_dim]
-            tgt[:, i, :] = recon[:, i, :]
+        tgt = th.zeros(
+            size=(x.shape[0], self._window_size, self._in_dim), device=x.device
+        )
+        tgt = self._decoder(tgt, memory)
 
-            if i < self._window_size - 1:
-                # Prepare next token
-                tgt = th.cat((tgt, th.zeros(size=token_shape)), dim=1)
+        #### # FIXME: currently broken
+        #### # Use greedy decoding to reconstruct sequence
+        #### token_shape = (x.shape[0], 1, self._in_dim)
+        #### tgt = th.zeros(size=token_shape)
+        #### # [bs, 1, self._in_dim]
+        #### for i in range(self._window_size):
+        ####     recon = self._decoder(tgt, memory)
+        ####     # [bs, i, self._in_dim]
+        ####     tgt[:, i, :] = recon[:, i, :]
+        ####
+        ####     if i < self._window_size - 1:
+        ####         # Prepare next token
+        ####         tgt = th.cat((tgt, th.zeros(size=token_shape)), dim=1)
 
         # [bs, window_size, self._in_dim]
         tgt = self.reconstruct(tgt)

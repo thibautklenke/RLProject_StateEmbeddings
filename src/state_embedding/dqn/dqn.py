@@ -1,19 +1,13 @@
 from typing import Any, Optional, Union
 
-import gymnasium as gym
 import numpy as np
 import torch as th
-from stable_baselines3.common.type_aliases import GymEnv
-from stable_baselines3.common.callbacks import ProgressBarCallback
 from stable_baselines3.common.buffers import ReplayBuffer
-from stable_baselines3.common.type_aliases import Schedule
+from stable_baselines3.common.type_aliases import GymEnv, Schedule
 from stable_baselines3.dqn import DQN
-from stable_baselines3.dqn.policies import DQNPolicy
 from torch.nn import functional as F
 
-from state_embedding.embedding import StateEmbedding
-from state_embedding.env import ContextEnv
-from state_embedding.qnetwork import EmbeddingPolicy
+from .qnetwork import EmbeddingPolicy
 
 
 class DQNWithReconstruction(DQN):
@@ -132,21 +126,3 @@ class DQNWithReconstruction(DQN):
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         self.logger.record("train/loss", np.mean(losses))
         self.logger.record("train/reconstruction_loss", np.mean(reconstruction_losses))
-
-
-def run():
-    env = gym.make("CartPole-v1")
-    dqn = DQN(
-        policy=DQNPolicy,
-        env=ContextEnv(env, window_size=5),
-        policy_kwargs={
-            "features_extractor_class": StateEmbedding,
-            "features_extractor_kwargs": {
-                "features_dim": 8,
-                "window_size": 5,
-                "n_head": 2,
-                "n_layers": 6,
-            },
-        },
-    )
-    dqn.learn(total_timesteps=10000, callback=ProgressBarCallback())

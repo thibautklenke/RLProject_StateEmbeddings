@@ -1,11 +1,10 @@
-from typing import Optional, Tuple, Any
+from typing import Any, Optional, Tuple
 
 import torch as th
 from gymnasium import spaces
-from stable_baselines3.common.type_aliases import PyTorchObs
-from stable_baselines3.common.type_aliases import Schedule
-from stable_baselines3.dqn.policies import DQNPolicy
+from stable_baselines3.common.type_aliases import PyTorchObs, Schedule
 from stable_baselines3.dqn.dqn import QNetwork
+from stable_baselines3.dqn.policies import DQNPolicy
 from torch import nn
 from torch.nn import functional as F
 
