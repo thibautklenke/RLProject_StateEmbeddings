@@ -1,22 +1,20 @@
-import gymnasium as gym
-
-from state_embedding.embed import DQNWithEmbedLoss
-from minatar.gym import register_envs
-from stable_baselines3.common.env_util import make_vec_env
-
-import torch as th
-import numpy as np
 import random
-from stable_baselines3.common.utils import set_random_seed
-from stable_baselines3.common.callbacks import ProgressBarCallback
 
-from state_embedding.env import ContextEnv, EmbeddingEnv
-from state_embedding.embed import StateEmbedNetwork
+import gymnasium as gym
+import numpy as np
+import torch as th
+from minatar.gym import register_envs
+from stable_baselines3.common.utils import set_random_seed
+from stable_baselines3.dqn import DQN
+
+from state_embedding.env import EmbeddingEnv
+from state_embedding.train import pretrain_combined, pretrain_qloss
 
 SEED = 0
 
 
 def hello() -> None:
+    # FIXME: currently unused
     register_envs()  # Register minatar namespace for gymnasium
     set_random_seed(SEED)
     th.manual_seed(SEED)
@@ -25,15 +23,52 @@ def hello() -> None:
     env = gym.make("CartPole-v1")
     env.reset(seed=SEED)
 
-    # vec_env = make_vec_env(lambda: gym.make('MinAtar/Seaquest-v1'), n_envs=2)
+    dqn = pretrain_combined(
+        env,
+        embedding_kwargs={
+            "features_dim": 8,
+            "window_size": 5,
+            "n_head": 2,
+            "n_layers": 6,
+        },
+        total_timesteps=1000,
+    )
+    embedding_net = dqn.q_net.features_extractor
+    embedding_net.eval()
 
-    window_size = 5
+    embedding_env = EmbeddingEnv(
+        env=env, embedding_module=embedding_net, window_size=embedding_net.window_size
+    )
+    dqn = DQN("MlpPolicy", embedding_env)
+    dqn.learn(total_timesteps=1000, progress_bar=True)
 
-    # TODO: Insert embedding module
-    #embedding_module = StateEmbedNetwork(env.observation_space, embedding_size=8, window_size=window_size)
 
-    #context_env = EmbeddingEnv(env, embedding_module, window_size)
+def test_qloss():
+    pretrain_qloss(
+        gym.make("CartPole-v1"),
+        embedding_kwargs={
+            "features_dim": 8,
+            "window_size": 5,
+            "n_head": 2,
+            "n_layers": 6,
+        },
+    )
 
-    dqn = DQNWithEmbedLoss("MlpPolicy", ContextEnv(env, window_size), learning_rate=1e-3)
-    dqn.learn(total_timesteps=10000, callback=ProgressBarCallback())
-    print("Hello from hello-world!")
+
+def test_combined():
+    import torch
+
+    torch.autograd.set_detect_anomaly(True)
+    pretrain_combined(
+        gym.make("CartPole-v1"),
+        embedding_kwargs={
+            "features_dim": 8,
+            "window_size": 5,
+            "n_head": 2,
+            "n_layers": 6,
+        },
+    )
+
+
+if __name__ == "__main__":
+    test_combined()

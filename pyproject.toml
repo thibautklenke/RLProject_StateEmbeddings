@@ -18,6 +18,8 @@ dependencies = [
 hello = "state_embedding:hello"
 main = "main:call_eval_loop"
 graphs = "graphs:graphs"
+test_qloss = "state_embedding:test_qloss"
+test_combined = "state_embedding:test_combined"
 
 
 [build-system]

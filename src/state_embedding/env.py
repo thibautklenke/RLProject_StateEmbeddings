@@ -1,8 +1,8 @@
-from gymnasium import Env
-import torch as th
-from gymnasium import spaces
-from state_embedding.embed import StateEmbedNetwork
 import numpy as np
+import torch as th
+from gymnasium import Env, spaces
+
+from state_embedding.embedding import StateEmbedding
 
 
 class ContextEnv(Env):
@@ -76,7 +76,7 @@ class EmbeddingEnv(Env):
     """Env to be used with embeddings as states, i.e. (embedding_size, )"""
 
     def __init__(
-        self, env: Env, embedding_module: StateEmbedNetwork, window_size: int = 5
+        self, env: Env, embedding_module: StateEmbedding, window_size: int = 5
     ) -> None:
         super().__init__()
 
@@ -91,22 +91,21 @@ class EmbeddingEnv(Env):
         self._embedding_module = embedding_module
 
         self.observation_space = spaces.Box(
-            0, 1, (self._embedding_module._embedding_size,)
+            0, 1, (self._embedding_module.features_dim,)
         )
-
-        self._embedding_module = embedding_module
 
     def step(self, action):
         step_result = self._env.step(action)
-        obs = step_result[0].flatten().unsqueeze(0)
-        return self._embedding_module.encode(obs).squeeze(0), *step_result[1:]
+        # obs.shape = [window_size, *observation_space.shape]
+        obs = step_result[0].unsqueeze(0)
+        # obs.shape = [1, window_size, *observation_space.shape]
+        embedding = self._embedding_module(obs).squeeze(0)
+        return embedding.detach().numpy(), *step_result[1:]
 
     def reset(self, seed=None, options=None):
         reset_result = self._env.reset(seed=seed, options=options)
-        encoded_init = self._embedding_module.encode(
-            reset_result[0].flatten().unsqueeze(0)
-        ).squeeze(0)
-        return encoded_init, *reset_result[1:]
+        encoded_init = self._embedding_module(reset_result[0].unsqueeze(0)).squeeze(0)
+        return encoded_init.detach().numpy(), *reset_result[1:]
 
     def render(self):
         return self._env.render()
