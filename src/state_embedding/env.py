@@ -10,7 +10,6 @@ class ContextEnv(Env):
         self,
         env: Env,
         window_size: int = 5,
-        no_markov: bool = False,
     ) -> None:
         super().__init__()
 
@@ -23,7 +22,6 @@ class ContextEnv(Env):
         self.spec = self._env.spec
 
         self._window_size = window_size
-        self._no_markov = no_markov
 
         low = np.stack([self._env.observation_space.low] * self._window_size)
         high = np.stack([self._env.observation_space.high] * self._window_size)
@@ -40,10 +38,6 @@ class ContextEnv(Env):
     def step(self, action):
         step_result = self._env.step(action)
         obs = th.tensor(step_result[0])
-
-        # Set oxygen bar in sequest to zero
-        if self._env._cached_spec.name == "Seaquest" and self._no_markov:
-            obs[9, :, 7] = 0
 
         # Append, no roll
         if self._insert_idx < self._window_size:
