@@ -5,8 +5,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 from torch.nn import functional as F
 
 from state_embedding.embedding import StateEmbedding, StateDecoder
-from state_embedding.state_embedd_eval import StateEmbeddEvalModule
-from state_embedding.env import EmbeddingEnv
+from state_embedding.embedding_eval import EmbeddingEvalHead
 
 
 class EmbeddingTrainingCallback(BaseCallback):
@@ -61,10 +60,11 @@ class EmbeddingTrainingCallback(BaseCallback):
         if self.n_calls % 500 == 0:
             # variables needed
             replay_buffer = self.locals["replay_buffer"]
-            head = StateEmbeddEvalModule(
-                in_features=self.features_dim * self.window_size, out_features=1
+            head = EmbeddingEvalHead(
+                features_dim=self.features_dim * self.window_size, out_features=1
             )
-            eval_optimizer = th.optim.Adam(head.parameters(), lr=1e-3)
+            # FIXME: broken
+            # eval_optimizer = th.optim.Adam(head.parameters(), lr=1e-3)
 
             total_loss = 0
             # train the head on a embeddings

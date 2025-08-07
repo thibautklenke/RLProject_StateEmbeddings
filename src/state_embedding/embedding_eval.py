@@ -1,14 +1,13 @@
-import torch.nn as nn
 import torch as th
-import gymnasium as gym
+import torch.nn as nn
 
 
-class StateEmbeddEvalModule(nn.Module):
-    def __init__(self, in_features, out_features=1, hidden_size=64):
+class EmbeddingEvalHead(nn.Module):
+    def __init__(self, features_dim, out_features=1, hidden_size=64):
         super().__init__()
 
         self.head = nn.Sequential(
-            nn.Linear(in_features, hidden_size),
+            nn.Linear(features_dim, hidden_size),
             nn.ReLU(),
             nn.Linear(hidden_size, out_features),
         )
