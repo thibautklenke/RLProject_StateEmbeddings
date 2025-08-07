@@ -4,9 +4,10 @@ from tbparse import SummaryReader
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 def graphs() -> None:
     log_dir = "./logs/MlpPolicy/"
-    reader = SummaryReader(log_dir, extra_columns={'dir_name'})
+    reader = SummaryReader(log_dir, extra_columns={"dir_name"})
     df = reader.scalars
 
     df["ALG_ENV"] = df["dir_name"].apply(lambda x: "-".join(x.split("-")[0:2]))
@@ -17,7 +18,6 @@ def graphs() -> None:
 
     def percentile95(x: pd.Series) -> pd.DataFrame:
         return np.percentile(x, 95)
-
 
     df = df[df["tag"] == "eval/mean_reward"].pivot_table(
         index="step",
@@ -38,7 +38,13 @@ def graphs() -> None:
         sns.lineplot(x=df.index, y=df["median"][group], label=group, color=palette[i])
 
         # Add error bounds
-        plt.fill_between(df.index, df['percentile5'][group], df['percentile95'][group], alpha=0.2, color=palette[i])
+        plt.fill_between(
+            df.index,
+            df["percentile5"][group],
+            df["percentile95"][group],
+            alpha=0.2,
+            color=palette[i],
+        )
 
     # Final touches
     plt.xlabel("Step")
@@ -49,7 +55,7 @@ def graphs() -> None:
     plt.legend(title="Algorithms")
     plt.show()
 
-    plt.savefig('output.png')
+    plt.savefig("output.png")
 
 
 if __name__ == "__main__":
