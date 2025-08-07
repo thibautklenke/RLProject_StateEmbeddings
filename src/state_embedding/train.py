@@ -40,6 +40,7 @@ def pretrain_combined(
     total_timesteps: int = 10000,
     tensorboard_log: str = "./logs/",
     callbacks: list[BaseCallback] = [ProgressBarCallback()],
+    device: str = "cpu",
 ) -> DQNWithReconstruction:
     window_size = embedding_kwargs.get("window_size", 5)
     dqn = DQNWithReconstruction(
@@ -48,6 +49,7 @@ def pretrain_combined(
             "feature_extractor_kwargs": embedding_kwargs,
         }
         | (policy_kwargs or {}),
+        device=device
     )
     dqn.learn(total_timesteps=total_timesteps, callback=callbacks)
     return dqn

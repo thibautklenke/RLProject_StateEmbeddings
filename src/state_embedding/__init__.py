@@ -22,27 +22,32 @@ def hello() -> None:
     th.manual_seed(SEED)
     np.random.seed(SEED)
     random.seed(SEED)
-    env = gym.make("CartPole-v1")
+    device = "cuda" if th.cuda.is_available() else "cpu"
+    
+    env = gym.make("MinAtar/Seaquest-v1")
     env.reset(seed=SEED)
 
     dqn = pretrain_combined(
         env,
         embedding_kwargs={
-            "features_dim": 8,
-            "window_size": 5,
+            "features_dim": 1024,
+            "window_size": 15,
             "n_head": 2,
             "n_layers": 6,
         },
-        total_timesteps=1000,
+        total_timesteps=100,
+        device=device
     )
+    
     embedding_net = dqn.q_net.features_extractor
+    embedding_net.to(device)
     embedding_net.eval()
 
     embedding_env = EmbeddingEnv(
         env=ContextEnv(env, 5), embedding_module=embedding_net, window_size=embedding_net.window_size
     )
-    dqn = DQN("MlpPolicy", embedding_env)
-    dqn.learn(total_timesteps=1000, progress_bar=True)
+    dqn = DQN("MlpPolicy", embedding_env, device=device)
+    dqn.learn(total_timesteps=5_000_000, progress_bar=True)
 
 
 def test_qloss():

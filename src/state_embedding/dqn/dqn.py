@@ -82,6 +82,15 @@ class DQNWithReconstruction(DQN):
             replay_data = self.replay_buffer.sample(
                 batch_size, env=self._vec_normalize_env
             )  # type: ignore[union-attr]
+            
+            device = self.device
+            replay_data = replay_data._replace(
+                observations=replay_data.observations.to(device),
+                next_observations=replay_data.next_observations.to(device),
+                actions=replay_data.actions.to(device),
+                rewards=replay_data.rewards.to(device),
+                dones=replay_data.dones.to(device),
+            )
 
             with th.no_grad():
                 # Compute the next Q-values using the target network
@@ -100,6 +109,8 @@ class DQNWithReconstruction(DQN):
             current_q_values, reconstruction_loss = self.q_net.combined_forward(
                 replay_data.observations
             )
+            
+            reconstruction_loss = reconstruction_loss.to(device)
 
             # Retrieve the q-values for the actions from the replay buffer
             current_q_values = th.gather(

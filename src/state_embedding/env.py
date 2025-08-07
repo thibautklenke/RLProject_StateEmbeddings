@@ -92,14 +92,20 @@ class EmbeddingEnv(Env):
         step_result = self._env.step(action)
         # obs.shape = [window_size, *observation_space.shape]
         obs = step_result[0].unsqueeze(0)
+        device = next(self._embedding_module.parameters()).device
+        obs_tensor = obs.to(device)
         # obs.shape = [1, window_size, *observation_space.shape]
-        embedding = self._embedding_module(obs).squeeze(0)
-        return embedding.detach().numpy(), *step_result[1:]
+        embedding = self._embedding_module(obs_tensor).squeeze(0)
+
+        return embedding.detach().cpu().numpy(), *step_result[1:]
 
     def reset(self, seed=None, options=None):
         reset_result = self._env.reset(seed=seed, options=options)
-        encoded_init = self._embedding_module(reset_result[0].unsqueeze(0)).squeeze(0)
-        return encoded_init.detach().numpy(), *reset_result[1:]
+        device = next(self._embedding_module.parameters()).device
+        obs_tensor = reset_result[0].unsqueeze(0).to(device)
+        encoded_init = self._embedding_module(obs_tensor).squeeze(0)
+
+        return encoded_init.detach().cpu().numpy(), *reset_result[1:]
 
     def render(self):
         return self._env.render()
