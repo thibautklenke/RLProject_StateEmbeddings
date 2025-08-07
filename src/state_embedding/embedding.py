@@ -16,7 +16,9 @@ class StateEmbedding(BaseFeaturesExtractor):
     ):
         super().__init__(observation_space, features_dim)
 
-        self._window_size = window_size
+        self.window_size = window_size
+        self.n_head = n_head
+        self.n_layers = n_layers
 
         in_dim = int(np.prod(observation_space.shape[1:]))
         self._in_dim = max(n_head, 2 ** ((in_dim - 1).bit_length()))
@@ -87,7 +89,7 @@ class StateDecoder(nn.Module):
         # Use greedy decoding to reconstruct sequence
         memory = x.unsqueeze(dim=1)
         token_shape = (x.shape[0], 1, self._in_dim)
-        tgt = th.zeros(shape=token_shape)
+        tgt = th.zeros(size=token_shape)
         # [bs, 1, self._in_dim]
         for i in range(self._window_size):
             recon = self._decoder(tgt, memory)
@@ -96,7 +98,7 @@ class StateDecoder(nn.Module):
 
             if i < self._window_size - 1:
                 # Prepare next token
-                tgt = th.cat((tgt, th.zeros(shape=token_shape)), dim=1)
+                tgt = th.cat((tgt, th.zeros(size=token_shape)), dim=1)
 
         # [bs, window_size, self._in_dim]
         tgt = self.reconstruct(tgt)
