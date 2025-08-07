@@ -4,6 +4,7 @@ import numpy as np
 import torch as th
 from minatar.gym import register_envs
 from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import EvalCallback, ProgressBarCallback
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.dqn import DQN
 
@@ -28,37 +29,52 @@ embedding_kwargs={
                 "n_layers": 4,
             }
 
-def pretrain(seed=0) -> None:
-    register_envs()  # Register minatar namespace for gymnasium
-    env = gym.make("MinAtar/Seaquest-v1")
+env_name = "MinAtar/Seaquest-v1"
+env_name_short = "seaquest"
+
+def pretrain(seed) -> None:
+    env = gym.make(env_name)
     env.reset(seed=seed)
+
+    # Separate evaluation env
+    eval_env = gym.make(env_name)
+    # Use deterministic actions for evaluation
+    eval_callback = EvalCallback(eval_env, best_model_save_path=f"./logs/{env_name_short}",
+                                 log_path="./logs/", eval_freq=500,
+                                 deterministic=True, render=False)
 
     for pretrain_name, pretrain_function in pretrain_types:
         dqn = pretrain_function(
             env,
+            tensorboard_log="./logs/breakout/",
             embedding_kwargs=embedding_kwargs,
             total_timesteps=2000,
+            callbacks=[ProgressBarCallback(), eval_callback],
         )
         embedding_net = dqn.q_net.features_extractor
 
-        th.save(embedding_net.state_dict(), f"embedding_net_seaquest_{pretrain_name}-{seed}.pth")
+        th.save(embedding_net.state_dict(), f"embedding_net_{pretrain_name}-{seed}.pth")
 
 
-def train(seed=0) -> None:
-    register_envs()  # Register minatar namespace for gymnasium
+def train(seed) -> None:
     for pretrain_name, _ in pretrain_types:
         for train_algorithm_name, train_algorithm in train_algorithm_types:
-            env = ContextEnv(gym.make("MinAtar/Seaquest-v1"), embedding_kwargs["window_size"])
-            env.reset(seed=seed+1)
+            # Separate evaluation env
+            eval_env = gym.make(env_name)
+            # Use deterministic actions for evaluation
+            eval_callback = EvalCallback(eval_env, best_model_save_path=f"./logs/{env_name_short}/",
+                                         log_path="./logs/", eval_freq=500,
+                                         deterministic=True, render=False)
 
-            embedding_weights = th.load(f"embedding_net_seaquest_{pretrain_name}-{seed}.pth")
-            embedding_net = StateEmbedding(observation_space=env.observation_space, **embedding_kwargs)
-            embedding_net.load_state_dict(embedding_weights)
+            embedding_net = th.load(f"embedding_net_{pretrain_name}-{seed}.pth")
+
             embedding_net.eval()
+
+            env = gym.make(env_name)
+            env.reset(seed=seed+1)
 
             embedding_env = EmbeddingEnv(
                 env=env, embedding_module=embedding_net, window_size=embedding_net.window_size
             )
-
-            model = train_algorithm("MlpPolicy", embedding_env)
+            model = train_algorithm("MlpPolicy", embedding_env, callbacks=[ProgressBarCallback(), eval_callback])
             model.learn(total_timesteps=10, progress_bar=True)

@@ -1,6 +1,6 @@
 from typing import Any, Optional
 
-from stable_baselines3.common.callbacks import ProgressBarCallback
+from stable_baselines3.common.callbacks import ProgressBarCallback, BaseCallback
 from stable_baselines3.common.type_aliases import GymEnv
 from stable_baselines3.dqn import DQN
 
@@ -17,16 +17,19 @@ def pretrain_qloss(
     embedding_kwargs: dict[str, Any],
     policy_kwargs: Optional[dict[str, Any]] = None,
     total_timesteps: int = 10000,
+    tensorboard_log: str = "./logs/",
+    callbacks: list[BaseCallback] = [ProgressBarCallback()],
 ) -> DQN:
     window_size = embedding_kwargs.get("window_size", 5)
     dqn = DQN(
         env=ContextEnv(env, window_size=window_size),
         policy=EmbeddingPolicy,
+        tensorboard_log=tensorboard_log,
         policy_kwargs={
             "feature_extractor_kwargs": embedding_kwargs,
         }.update(policy_kwargs or {}),
     )
-    dqn.learn(total_timesteps=total_timesteps, callback=ProgressBarCallback())
+    dqn.learn(total_timesteps=total_timesteps, callback=callbacks)
     return dqn
 
 
@@ -35,6 +38,8 @@ def pretrain_combined(
     embedding_kwargs: dict[str, Any],
     policy_kwargs: Optional[dict[str, Any]] = None,
     total_timesteps: int = 10000,
+    tensorboard_log: str = "./logs/",
+    callbacks: list[BaseCallback] = [ProgressBarCallback()],
 ) -> DQNWithReconstruction:
     window_size = embedding_kwargs.get("window_size", 5)
     dqn = DQNWithReconstruction(
@@ -44,5 +49,5 @@ def pretrain_combined(
         }
         | (policy_kwargs or {}),
     )
-    dqn.learn(total_timesteps=total_timesteps, callback=ProgressBarCallback())
+    dqn.learn(total_timesteps=total_timesteps, callback=callbacks)
     return dqn
