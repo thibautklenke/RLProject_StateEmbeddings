@@ -19,7 +19,7 @@ pretrain_types = [
 ]
 
 train_algorithm_types = [
-    #("DQN", DQN),
+    ("DQN", DQN),
     ("PPO", PPO),
 ]
 
