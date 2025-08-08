@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
 import torch as th
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, EventCallback
 from torch.nn import functional as F
 
 from state_embedding.embedding import StateEmbedding, StateDecoder
@@ -88,4 +88,21 @@ class EmbeddingTrainingCallback(BaseCallback):
 
             self.logger.record("eval/Total_Loss", total_loss / 500)
 
+        return True
+
+class EveryNSteps(EventCallback):
+    """
+    Trigger a callback every `n_steps` timesteps
+    :param n_steps: (int) Number of timesteps between two trigger.
+    """
+    def __init__(self, n_steps: int, callback):
+        super(EveryNSteps, self).__init__()
+        self.n_steps = n_steps
+        self.last_time_trigger = 0
+        self._custom_callback = callback
+
+    def _on_step(self) -> bool:
+        if (self.num_timesteps - self.last_time_trigger) >= self.n_steps:
+            self.last_time_trigger = self.num_timesteps
+            self._custom_callback()
         return True
