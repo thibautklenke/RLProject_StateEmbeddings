@@ -36,13 +36,10 @@ n_pretrain = 500_000
 n_train = 4_000_000
 
 
-def pretrain(seed) -> None:
+def pretrain(seed=0) -> None:
     env = gym.make(env_name)
     env.reset(seed=seed)
     device = "cuda" if th.cuda.is_available() else "cpu"
-
-    # Separate evaluation env
-    eval_env = gym.make(env_name)
 
     # Use deterministic actions for evaluation
     for pretrain_name, pretrain_function in pretrain_types:
@@ -51,7 +48,7 @@ def pretrain(seed) -> None:
             tensorboard_log=f"./logs/{env_name_short}/",
             embedding_kwargs=embedding_kwargs,
             total_timesteps=n_pretrain,
-            callbacks=[ProgressBarCallback(), CheckpointCallback(save_freq=50000, save_path=f"./saves/{env_name_short}/", name_prefix=f"{env_name_short}_embedding", save_replay_buffer=False, save_vecnormalize=False)],
+            callbacks=[ProgressBarCallback(), CheckpointCallback(save_freq=n_pretrain // 10, save_path=f"./saves/{env_name_short}/", name_prefix=f"{env_name_short}_embedding", save_replay_buffer=True, save_vecnormalize=False)],
             device=device
         )
         embedding_net = dqn.q_net.features_extractor
@@ -59,7 +56,7 @@ def pretrain(seed) -> None:
         th.save(embedding_net, f"embedding_net_{env_name_short}-{pretrain_name}.pth")
 
 
-def train(seed) -> None:
+def train(seed=0) -> None:
     device = "cuda" if th.cuda.is_available() else "cpu"
     for pretrain_name, _ in pretrain_types:
         for train_algorithm_name, train_algorithm in train_algorithm_types:
@@ -83,7 +80,7 @@ def train(seed) -> None:
             )    
             eval_env.reset(seed=seed+1)
             eval_callback = EvalCallback(eval_env, best_model_save_path=f"./logs/{env_name_short}/",
-                                         log_path="./logs/", eval_freq=5000,
+                                         log_path="./logs/", eval_freq=n_train//1000,
                                          deterministic=True, render=False)
             model = train_algorithm("MlpPolicy", embedding_env, device=device)
             model.learn(total_timesteps=n_train, progress_bar=True, callback=eval_callback)
