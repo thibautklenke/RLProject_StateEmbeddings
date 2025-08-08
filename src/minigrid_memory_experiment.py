@@ -35,8 +35,8 @@ embedding_kwargs={
 env_name = "MiniGrid-MemoryS7-v0"
 env_name_short = "minigrid-memory"
 
-n_pretrain = 50_000
-n_train = 500_000
+n_pretrain = 100_000
+n_train = 1_000_000
 
 def pretrain(seed=0) -> None:
     env = FlatObsWrapper(gym.make(env_name))
