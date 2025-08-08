@@ -44,7 +44,7 @@ net_arch = [128, 128]
 
 
 def pretrain(seed=0) -> None:
-    env = gym.make(env_name)
+    env = FlatObsWrapper(gym.make(env_name))
     env.reset(seed=seed)
     device = "cuda" if th.cuda.is_available() else "cpu"
 
