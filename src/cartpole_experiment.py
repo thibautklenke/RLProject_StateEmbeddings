@@ -57,7 +57,7 @@ def pretrain(seed) -> None:
         )
         embedding_net = dqn.q_net.features_extractor
 
-        th.save(embedding_net, f"embedding_net_{env_name_short}-{pretrain_name}-{seed}.pth")
+        th.save(embedding_net, f"embedding_net_{env_name_short}-{pretrain_name}.pth")
 
 
 def train(seed) -> None:
@@ -71,7 +71,7 @@ def train(seed) -> None:
                                          log_path="./logs/", eval_freq=500,
                                          deterministic=True, render=False)
 
-            embedding_net = th.load(f"embedding_net_{env_name_short}-{pretrain_name}-{seed}.pth", weights_only=False)
+            embedding_net = th.load(f"embedding_net_{env_name_short}-{pretrain_name}.pth", weights_only=False)
 
             embedding_net.to(device)
             embedding_net.eval()
