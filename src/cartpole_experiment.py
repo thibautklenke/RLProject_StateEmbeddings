@@ -7,6 +7,9 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import ProgressBarCallback, EvalCallback, CheckpointCallback
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.dqn import DQN
+from state_embedding.callbacks import EveryNSteps
+
+import subprocess
 
 from state_embedding.env import ContextEnv, EmbeddingEnv
 from state_embedding.train import pretrain_combined, pretrain_qloss
@@ -49,7 +52,9 @@ def pretrain(seed=0) -> None:
             callbacks=[ProgressBarCallback(),
                        CheckpointCallback(save_freq=n_pretrain // 10, save_path=f"./saves/{env_name_short}/",
                                           name_prefix=f"{env_name_short}_embedding", save_replay_buffer=True,
-                                          save_vecnormalize=False)],
+                                          save_vecnormalize=False),
+                       EveryNSteps(n_steps=n_pretrain // 10, callable=lambda: subprocess.call("/workspace/RLProject_StateEmbeddings/move_to_s3.sh"))
+            ],
             device=device
         )
         embedding_net = dqn.q_net.features_extractor
