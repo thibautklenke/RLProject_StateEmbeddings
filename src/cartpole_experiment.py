@@ -22,10 +22,10 @@ train_algorithm_types = [
 ]
 
 embedding_kwargs={
-    "features_dim": 64,
+    "features_dim": 3,
     "window_size": 10,
     "n_head": 2,
-    "n_layers": 4,
+    "n_layers": 2,
 }
 
 env_name = "CartPole-v1"
