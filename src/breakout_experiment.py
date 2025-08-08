@@ -85,5 +85,5 @@ def train(seed=0) -> None:
             eval_callback = EvalCallback(eval_env, best_model_save_path=f"./logs/{env_name_short}/",
                                          log_path="./logs/", eval_freq=n_train//1000,
                                          deterministic=True, render=False)
-            model = train_algorithm("MlpPolicy", embedding_env)
+            model = train_algorithm("MlpPolicy", embedding_env, device=device)
             model.learn(total_timesteps=n_train, progress_bar=True, callback=eval_callback)
