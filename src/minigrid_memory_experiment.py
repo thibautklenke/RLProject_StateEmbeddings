@@ -50,9 +50,6 @@ def pretrain(seed=0) -> None:
 
     # Use deterministic actions for evaluation
     for pretrain_name, pretrain_function in pretrain_types:
-        if pretrain_name == "pretrain_qloss":
-            continue
-
         dqn = pretrain_function(
             env,
             tensorboard_log=f"./logs/{env_name_short}/",
