@@ -21,6 +21,11 @@ def main() -> None:
     seeds = range(1)
     register_envs()  # Register minatar namespace for gymnasium
 
+    set_random_seed(0)
+    th.manual_seed(0)
+    np.random.seed(0)
+    random.seed(0)
+
     # Pretrain only once
     mme.pretrain(0)
     mue.pretrain(0)
@@ -29,14 +34,19 @@ def main() -> None:
     se.pretrain(0)
     sem.pretrain(0)
 
-    return
-
     for SEED in seeds:
         print(SEED)
         set_random_seed(SEED)
         th.manual_seed(SEED)
         np.random.seed(SEED)
         random.seed(SEED)
+
+        mme.train(0)
+        mue.train(0)
+        be.train(0)
+        ce.train(0)
+        se.train(0)
+        sem.train(0)
 
 
 

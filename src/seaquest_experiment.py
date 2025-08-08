@@ -22,7 +22,7 @@ pretrain_types = [
 
 train_algorithm_types = [
     ("DQN", DQN),
-    ("PPO", PPO),
+#    ("PPO", PPO),
 ]
 
 embedding_kwargs={
@@ -37,6 +37,7 @@ env_name_short = "seaquest"
 
 n_pretrain = 500_000
 n_train = 4_000_000
+net_arch = [128, 128]
 
 
 def pretrain(seed=0) -> None:
@@ -46,10 +47,14 @@ def pretrain(seed=0) -> None:
 
     # Use deterministic actions for evaluation
     for pretrain_name, pretrain_function in pretrain_types:
+        if pretrain_name == "pretrain_qloss":
+            continue
+
         dqn = pretrain_function(
             env,
             tensorboard_log=f"./logs/{env_name_short}/",
             embedding_kwargs=embedding_kwargs,
+            policy_kwargs={"net_arch": net_arch},
             total_timesteps=n_pretrain,
             callbacks=[ProgressBarCallback(),
                        CheckpointCallback(save_freq=n_pretrain // 10, save_path=f"./saves/{env_name_short}/",
@@ -66,29 +71,61 @@ def pretrain(seed=0) -> None:
 
 def train(seed=0) -> None:
     device = "cuda" if th.cuda.is_available() else "cpu"
-    for pretrain_name, _ in pretrain_types:
-        for train_algorithm_name, train_algorithm in train_algorithm_types:
-            
+    for train_algorithm_name, train_algorithm in train_algorithm_types:
+        # first train the algorithm normally so we know a benchmark
+        env = gym.make(env_name)
+        env.reset(seed=seed)
+
+        eval_env = gym.make(env_name)
+        eval_env.reset(seed=seed + 1)
+
+        eval_callback = EvalCallback(eval_env,
+                                     log_path=f"./logs/{env_name_short}/train/{seed}/normal/logs/",
+                                     eval_freq=n_train // 1000,
+                                     deterministic=True, render=False
+        )
+
+        model = train_algorithm("MlpPolicy", env,
+                    device=device,
+                    tensorboard_log=f"./logs/{env_name_short}/train/{seed}/normal/128/logs/",
+                    policy_kwargs={
+                        "net_arch": net_arch,
+                    }
+        )
+
+        model.learn(total_timesteps=n_train, progress_bar=True, callback=eval_callback)
+
+
+        # now train the algorithms with the pretrain types
+        for pretrain_name, _ in pretrain_types:
             # Use deterministic actions for evaluation
             embedding_net = th.load(f"embedding_net_{env_name_short}-{pretrain_name}.pth", weights_only=False)
-            
+
             embedding_net.to(device)
             embedding_net.eval()
 
             env = gym.make(env_name)
-            env.reset(seed=seed+1)
+            env.reset(seed=seed + 1)
 
             embedding_env = EmbeddingEnv(
-                env=ContextEnv(env, embedding_kwargs["window_size"]), embedding_module=embedding_net, window_size=embedding_net.window_size
+                env=ContextEnv(env, embedding_kwargs["window_size"]), embedding_module=embedding_net,
+                window_size=embedding_net.window_size
             )
 
             # Separate evaluation env
             eval_env = EmbeddingEnv(
-                env=ContextEnv(gym.make(env_name), embedding_kwargs["window_size"]), embedding_module=embedding_net, window_size=embedding_net.window_size
-            )    
-            eval_env.reset(seed=seed+1)
+                env=ContextEnv(gym.make(env_name), embedding_kwargs["window_size"]), embedding_module=embedding_net,
+                window_size=embedding_net.window_size
+            )
+            eval_env.reset(seed=seed + 1)
             eval_callback = EvalCallback(eval_env,
-                                         log_path=f"./logs/{env_name_short}/{seed}/logs/", eval_freq=n_train//1000,
+                                         log_path=f"./logs/{env_name_short}/train/{seed}/{pretrain_name}/logs/", eval_freq=n_train//1000,
                                          deterministic=True, render=False)
-            model = train_algorithm("MlpPolicy", embedding_env, device=device)
+            model = train_algorithm("MlpPolicy",
+                                    embedding_env,
+                                    policy_kwargs={"net_arch": net_arch},
+                                    device=device,
+                                    tensorboard_log=f"./logs/{env_name_short}/train/{seed}/{pretrain_name}/128/logs/"
+            )
+
             model.learn(total_timesteps=n_train, progress_bar=True, callback=eval_callback)

@@ -53,6 +53,7 @@ def pretrain_combined(
         }
         | (policy_kwargs or {}),
         device=device,
+        tensorboard_log=tensorboard_log,
         buffer_size=100_000
     )
     dqn.learn(total_timesteps=total_timesteps, callback=callbacks)
