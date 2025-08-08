@@ -22,8 +22,8 @@ train_algorithm_types = [
 ]
 
 embedding_kwargs={
-    "features_dim": 256,
-    "window_size": 15,
+    "features_dim": 64,
+    "window_size": 10,
     "n_head": 2,
     "n_layers": 4,
 }
@@ -31,8 +31,8 @@ embedding_kwargs={
 env_name = "CartPole-v1"
 env_name_short = "cartpole"
 
-n_pretrain = 2_000_000
-n_train = 5_000_000
+n_pretrain = 100_000
+n_train = 1_000_000
 
 def pretrain(seed) -> None:
     env = gym.make(env_name)
