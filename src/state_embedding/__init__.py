@@ -1,6 +1,8 @@
 import random
 
 import gymnasium as gym
+import minigrid
+from minigrid.wrappers import FlatObsWrapper
 import numpy as np
 import torch as th
 from minatar.gym import register_envs
@@ -24,18 +26,21 @@ def hello() -> None:
     random.seed(SEED)
     device = "cuda" if th.cuda.is_available() else "cpu"
     
-    env = gym.make("MinAtar/Seaquest-v1")
+    print(device)
+    
+    env = gym.make("MiniGrid-FourRooms-v0")
+    env = FlatObsWrapper(env)
     env.reset(seed=SEED)
 
     dqn = pretrain_combined(
         env,
         embedding_kwargs={
-            "features_dim": 1024,
-            "window_size": 15,
+            "features_dim": 256,
+            "window_size": 10,
             "n_head": 2,
-            "n_layers": 6,
+            "n_layers": 4,
         },
-        total_timesteps=100,
+        total_timesteps=300,
         device=device
     )
     

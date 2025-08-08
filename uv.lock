@@ -799,6 +799,20 @@ wheels = [
 ]
 
 [[package]]
+name = "minigrid"
+version = "3.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "gymnasium" },
+    { name = "numpy" },
+    { name = "pygame" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/af/fb1c394b4ab4405efe01c84f4f187c0e1b675ee1bbf263775a4b33ce947c/minigrid-3.0.0.tar.gz", hash = "sha256:272d08242baea8e96f49495ec8d62db1be32e0f7b1e399e1c85c22368c7b0cc5", size = 103654, upload-time = "2024-11-17T14:49:20.633Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/12/44/67f786660ee703c6380353103beddc1a8fd50263efd22cbbf590497bd8b1/minigrid-3.0.0-py3-none-any.whl", hash = "sha256:5b505fcdab7e4306a78e7735f1114285d404a10503e9bfdd60169b49dfa34ccd", size = 136681, upload-time = "2024-11-17T14:49:18.845Z" },
+]
+
+[[package]]
 name = "ml-dtypes"
 version = "0.5.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1698,6 +1712,7 @@ source = { editable = "." }
 dependencies = [
     { name = "gymnasium", extra = ["all"] },
     { name = "minatar" },
+    { name = "minigrid" },
     { name = "papermill" },
     { name = "pre-commit" },
     { name = "stable-baselines3" },
@@ -1717,6 +1732,7 @@ dev = [
 requires-dist = [
     { name = "gymnasium", extras = ["all"], specifier = ">=1.1.1" },
     { name = "minatar", specifier = ">=1.0.15" },
+    { name = "minigrid", specifier = ">=3.0.0" },
     { name = "papermill", specifier = ">=2.6.0" },
     { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "stable-baselines3", specifier = ">=2.6.0" },

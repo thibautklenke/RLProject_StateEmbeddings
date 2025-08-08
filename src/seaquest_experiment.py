@@ -23,17 +23,17 @@ train_algorithm_types = [
 ]
 
 embedding_kwargs={
-    "features_dim": 512,
-    "window_size": 2,
+    "features_dim": 256,
+    "window_size": 10,
     "n_head": 2,
-    "n_layers": 4,
+    "n_layers": 2,
 }
 
 env_name = "MinAtar/Seaquest-v1"
 env_name_short = "seaquest"
 
-n_pretrain = 300
-n_train = 5_000_000
+n_pretrain = 500_000
+n_train = 4_000_000
 
 def pretrain(seed) -> None:
     env = gym.make(env_name)
