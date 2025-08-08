@@ -52,7 +52,7 @@ def pretrain(seed=0) -> None:
             total_timesteps=n_pretrain,
             callbacks=[ProgressBarCallback(),
                        CheckpointCallback(save_freq=n_pretrain // 10, save_path=f"./saves/{env_name_short}/",
-                                          name_prefix=f"{env_name_short}_embedding", save_replay_buffer=True,
+                                          name_prefix=f"{env_name_short}_embedding", save_replay_buffer=False,
                                           save_vecnormalize=False),
                        EveryNSteps(n_steps=n_pretrain // 10, callback=lambda: subprocess.call("/workspace/RLProject_StateEmbeddings/move_to_s3.sh"))
             ],
