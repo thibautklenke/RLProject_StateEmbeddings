@@ -34,8 +34,6 @@ env_name_short = "seaquest"
 
 n_pretrain = 500_000
 n_train = 4_000_000
-n_pretrain = 10000
-n_train = 10000
 
 
 def pretrain(seed) -> None:
@@ -87,5 +85,5 @@ def train(seed) -> None:
             eval_callback = EvalCallback(eval_env, best_model_save_path=f"./logs/{env_name_short}/",
                                          log_path="./logs/", eval_freq=5000,
                                          deterministic=True, render=False)
-            model = train_algorithm("MlpPolicy", embedding_env)
+            model = train_algorithm("MlpPolicy", embedding_env, device=device)
             model.learn(total_timesteps=n_train, progress_bar=True, callback=eval_callback)
