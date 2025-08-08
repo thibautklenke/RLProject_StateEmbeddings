@@ -22,12 +22,15 @@ def main() -> None:
     register_envs()  # Register minatar namespace for gymnasium
 
     # Pretrain only once
-    mme.pretrain(0)
-    mue.pretrain(0)
+    # mme.pretrain(0)
+    # mue.pretrain(0)
     # be.pretrain(0)
     # ce.pretrain(0)
-    # se.pretrain(0)
-    # sem.pretrain(0)
+    se.pretrain(0)
+    se.train(0)
+    #sem.pretrain(0)
+
+    #mme.train(0)
 
     return
 
