@@ -29,7 +29,8 @@ def pretrain_qloss(
         policy_kwargs={
             "feature_extractor_kwargs": embedding_kwargs,
         }.update(policy_kwargs or {}),
-        device=device
+        device=device,
+        buffer_size=100_000
     )
     dqn.learn(total_timesteps=total_timesteps, callback=callbacks)
     return dqn
@@ -51,7 +52,8 @@ def pretrain_combined(
             "feature_extractor_kwargs": embedding_kwargs,
         }
         | (policy_kwargs or {}),
-        device=device
+        device=device,
+        buffer_size=100_000
     )
     dqn.learn(total_timesteps=total_timesteps, callback=callbacks)
     return dqn
