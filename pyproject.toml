@@ -25,6 +25,8 @@ test_combined = "state_embedding:test_combined"
 seaquest_train = "seaquest_experiment:train"
 seaquest_pretrain = "seaquest_experiment:pretrain"
 
+eval_pretrain_breakout = "eval:eval_pretrain_breakout"
+
 
 [build-system]
 requires = ["hatchling"]

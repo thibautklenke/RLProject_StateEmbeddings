@@ -5,7 +5,6 @@ import gymnasium as gym
 import numpy as np
 import torch as th
 import torch.nn as nn
-from stable_baselines3.common import type_aliases
 from stable_baselines3.common.callbacks import BaseCallback
 from torch.nn import functional as F
 
@@ -85,7 +84,7 @@ class EmbeddingEvalCallback(BaseCallback):
 
 
 def evaluate_embedding(
-    model: "type_aliases.PolicyPredictor",
+    # model: "type_aliases.PolicyPredictor",
     env: ContextEnv,
     embedding: StateEmbedding,
     total_steps: int = 1000,
@@ -110,7 +109,7 @@ def evaluate_embedding(
     embedding.eval()
     eval_head.train(True)
     _step_in_env(
-        model,
+        # model,
         env,
         embedding,
         train,
@@ -127,7 +126,7 @@ def evaluate_embedding(
     # FIXME: config
     eval_head.eval()
     _step_in_env(
-        model,
+        # model,
         env,
         embedding,
         eval,
@@ -143,7 +142,7 @@ def evaluate_embedding(
 
 
 def _step_in_env(
-    model: "type_aliases.PolicyPredictor",
+    # model: "type_aliases.PolicyPredictor",
     env: ContextEnv,
     embedding: StateEmbedding,
     loss_callback,
@@ -152,9 +151,14 @@ def _step_in_env(
     deterministic: bool = True,
 ):
     obs, _ = env.reset()
-    for _ in range(total_steps):
-        actions, states = model.predict(obs, deterministic=deterministic)
-        new_obs, rewards, terminated, truncated, infos = env.step(actions)
+    for i in range(total_steps):
+        if (i + 1) % (total_steps // 10) == 0:
+            print(f"{i+1}/{total_steps}")
+        # actions, states = model.predict(obs, deterministic=deterministic)
+        new_obs, rewards, terminated, truncated, infos = env.step(
+            env.action_space.sample()
+        )
+        new_obs = th.tensor(new_obs, dtype=th.float32)
 
         if terminated or truncated:
             obs, _ = env.reset()
@@ -165,5 +169,7 @@ def _step_in_env(
             embed = embedding(new_obs.unsqueeze(0)).squeeze(0)
 
         predicted_rewards = eval_head(embed)
-        loss = F.mse_loss(predicted_rewards, th.tensor(rewards).unsqueeze(0))
+        loss = F.mse_loss(
+            predicted_rewards, th.tensor(rewards, dtype=th.float32).unsqueeze(0)
+        )
         loss_callback(loss)

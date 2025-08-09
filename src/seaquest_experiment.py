@@ -113,7 +113,7 @@ def train(seed=0) -> None:
             eval_env = EmbeddingEnv(
                 env=ContextEnv(gym.make(env_name), embedding_kwargs["window_size"]), embedding_module=embedding_net,
                 window_size=embedding_net.window_size
-            )
+            )^
             eval_env.reset(seed=seed + 1)
             eval_callback = EvalCallback(eval_env,
                                          log_path=f"./logs/{env_name_short}/train/{seed}/{pretrain_name}/logs/", eval_freq=n_train//1000,
