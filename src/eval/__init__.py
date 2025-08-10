@@ -61,7 +61,7 @@ def eval_pretrain_breakout():
         )
 
         loss_mean, loss_std = evaluate_embedding(
-            env, embedding, total_steps=1_000, deterministic=False, hidden_size=64
+            env, embedding, total_steps=100_000, deterministic=False, hidden_size=64
         )
 
         logger[train_type].record("eval/loss_mean", loss_mean)

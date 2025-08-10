@@ -131,7 +131,7 @@ def evaluate_embedding(
         embedding,
         eval,
         eval_head,
-        total_steps=total_steps,
+        total_steps=total_steps // 10,
         deterministic=True,
     )
 
