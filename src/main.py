@@ -27,8 +27,8 @@ def main() -> None:
     random.seed(0)
 
     # Pretrain only once
-    mme.pretrain(0)
-    #mue.pretrain(0)
+    #mme.pretrain(0)
+    mue.pretrain(0)
     #be.pretrain(0)
     ce.pretrain(0)
     #se.pretrain(0)
@@ -41,8 +41,8 @@ def main() -> None:
         np.random.seed(SEED)
         random.seed(SEED)
 
-        mme.train(SEED)
-        #mue.train(SEED)
+        #mme.train(SEED)
+        mue.train(SEED)
         #be.train(SEEd)
         ce.train(SEED)
         #se.train(SEED)
