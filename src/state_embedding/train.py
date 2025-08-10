@@ -30,7 +30,8 @@ def pretrain_qloss(
         tensorboard_log=tensorboard_log,
         policy_kwargs={
             "feature_extractor_kwargs": embedding_kwargs,
-        }.update(policy_kwargs or {}),
+        }
+        | (policy_kwargs or {}),
         device=device,
         buffer_size=100_000,
         exploration_fraction=exploration_fraction,
