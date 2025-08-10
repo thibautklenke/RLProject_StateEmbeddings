@@ -18,7 +18,7 @@ from state_embedding.env import EmbeddingEnv
 from state_embedding.train import pretrain_combined, pretrain_qloss
 
 def main() -> None:
-    seeds = range(1)
+    seeds = range(10)
     register_envs()  # Register minatar namespace for gymnasium
 
     set_random_seed(0)
@@ -28,11 +28,11 @@ def main() -> None:
 
     # Pretrain only once
     mme.pretrain(0)
-    mue.pretrain(0)
-    be.pretrain(0)
-    ce.pretrain(0)
-    se.pretrain(0)
-    sem.pretrain(0)
+    #mue.pretrain(0)
+    #be.pretrain(0)
+    #ce.pretrain(0)
+    #se.pretrain(0)
+    #sem.pretrain(0)
 
     for SEED in seeds:
         print(SEED)
@@ -42,11 +42,11 @@ def main() -> None:
         random.seed(SEED)
 
         mme.train(0)
-        mue.train(0)
-        be.train(0)
-        ce.train(0)
-        se.train(0)
-        sem.train(0)
+        #mue.train(0)
+        #be.train(0)
+        #ce.train(0)
+        #se.train(0)
+        #sem.train(0)
 
 
 

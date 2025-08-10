@@ -20,7 +20,7 @@ from state_embedding.train import pretrain_combined, pretrain_qloss
 
 pretrain_types = [
     ("pretrain_combined", pretrain_combined),
-    ("pretrain_qloss", pretrain_qloss),
+#    ("pretrain_qloss", pretrain_qloss),
 ]
 
 train_algorithm_types = [
@@ -30,7 +30,7 @@ train_algorithm_types = [
 
 embedding_kwargs={
     "features_dim": 256,
-    "window_size": 10,
+    "window_size": 20,
     "n_head": 2,
     "n_layers": 2,
 }
@@ -38,8 +38,8 @@ embedding_kwargs={
 env_name = "MiniGrid-MemoryS7-v0"
 env_name_short = "minigrid-memory"
 
-n_pretrain = 100_000
-n_train = 1_000_000
+n_pretrain = 200_000
+n_train = 500_000
 net_arch = [128, 128]
 
 
@@ -62,7 +62,9 @@ def pretrain(seed=0) -> None:
                                           save_vecnormalize=False),
                        EveryNSteps(n_steps=n_pretrain // 10, callback=lambda: subprocess.call("/workspace/RLProject_StateEmbeddings/move_to_s3.sh"))
             ],
-            device=device
+            device=device,
+            exploration_fraction=0.2,
+            exploration_final_eps=0.1,
         )
         embedding_net = dqn.q_net.features_extractor
 
@@ -81,7 +83,7 @@ def train(seed=0) -> None:
 
         eval_callback = EvalCallback(eval_env,
                                      log_path=f"./logs/{env_name_short}/train/{seed}/normal/logs/",
-                                     eval_freq=n_train // 1000,
+                                     eval_freq=n_train // 200,
                                      deterministic=True, render=False
         )
 
@@ -119,7 +121,7 @@ def train(seed=0) -> None:
             )
             eval_env.reset(seed=seed + 1)
             eval_callback = EvalCallback(eval_env,
-                                         log_path=f"./logs/{env_name_short}/train/{seed}/{pretrain_name}/logs/", eval_freq=n_train//1000,
+                                         log_path=f"./logs/{env_name_short}/train/{seed}/{pretrain_name}/logs/", eval_freq=n_train // 200,
                                          deterministic=True, render=False)
             model = train_algorithm("MlpPolicy",
                                     embedding_env,

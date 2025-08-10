@@ -20,6 +20,8 @@ def pretrain_qloss(
     tensorboard_log: str = "./logs/",
     callbacks: list[BaseCallback] = [ProgressBarCallback()],
     device: str = "cpu",
+    exploration_fraction: float = 0.2,
+    exploration_final_eps: float = 0.1,
 ) -> DQN:
     window_size = embedding_kwargs.get("window_size", 5)
     dqn = DQN(
@@ -30,7 +32,9 @@ def pretrain_qloss(
             "feature_extractor_kwargs": embedding_kwargs,
         }.update(policy_kwargs or {}),
         device=device,
-        buffer_size=100_000
+        buffer_size=100_000,
+        exploration_fraction=exploration_fraction,
+        exploration_final_eps=exploration_final_eps,
     )
     dqn.learn(total_timesteps=total_timesteps, callback=callbacks)
     return dqn
@@ -44,6 +48,8 @@ def pretrain_combined(
     tensorboard_log: str = "./logs/",
     callbacks: list[BaseCallback] = [ProgressBarCallback()],
     device: str = "cpu",
+    exploration_fraction: float=0.2,
+    exploration_final_eps: float=0.1,
 ) -> DQNWithReconstruction:
     window_size = embedding_kwargs.get("window_size", 5)
     dqn = DQNWithReconstruction(
@@ -54,7 +60,9 @@ def pretrain_combined(
         | (policy_kwargs or {}),
         device=device,
         tensorboard_log=tensorboard_log,
-        buffer_size=100_000
+        buffer_size=100_000,
+        exploration_fraction=exploration_fraction,
+        exploration_final_eps=exploration_final_eps,
     )
     dqn.learn(total_timesteps=total_timesteps, callback=callbacks)
     return dqn
