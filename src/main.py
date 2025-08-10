@@ -30,7 +30,7 @@ def main() -> None:
     mme.pretrain(0)
     #mue.pretrain(0)
     #be.pretrain(0)
-    #ce.pretrain(0)
+    ce.pretrain(0)
     #se.pretrain(0)
     #sem.pretrain(0)
 
@@ -41,12 +41,12 @@ def main() -> None:
         np.random.seed(SEED)
         random.seed(SEED)
 
-        mme.train(0)
-        #mue.train(0)
-        #be.train(0)
-        #ce.train(0)
-        #se.train(0)
-        #sem.train(0)
+        mme.train(SEED)
+        #mue.train(SEED)
+        #be.train(SEEd)
+        ce.train(SEED)
+        #se.train(SEED)
+        #sem.train(SEED)
 
 
 

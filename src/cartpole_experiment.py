@@ -34,7 +34,7 @@ embedding_kwargs={
 env_name = "CartPole-v1"
 env_name_short = "cartpole"
 
-n_pretrain = 10_000
+n_pretrain = 40_000
 n_train = 100_000
 net_arch = [64, 64]
 
@@ -58,7 +58,9 @@ def pretrain(seed=0) -> None:
                                           save_vecnormalize=False),
                        EveryNSteps(n_steps=n_pretrain // 10, callback=lambda: subprocess.call("/workspace/RLProject_StateEmbeddings/move_to_s3.sh"))
             ],
-            device=device
+            device=device,
+            exploration_fraction=0.2,
+            exploration_final_eps=0.1,
         )
         embedding_net = dqn.q_net.features_extractor
 
@@ -77,7 +79,7 @@ def train(seed=0) -> None:
 
         eval_callback = EvalCallback(eval_env,
                                      log_path=f"./logs/{env_name_short}/train/{seed}/normal/logs/",
-                                     eval_freq=n_train // 1000,
+                                     eval_freq=n_train // 200,
                                      deterministic=True, render=False
         )
 
@@ -115,7 +117,7 @@ def train(seed=0) -> None:
             )
             eval_env.reset(seed=seed + 1)
             eval_callback = EvalCallback(eval_env,
-                                         log_path=f"./logs/{env_name_short}/train/{seed}/{pretrain_name}/logs/", eval_freq=n_train//1000,
+                                         log_path=f"./logs/{env_name_short}/train/{seed}/{pretrain_name}/logs/", eval_freq=n_train//200,
                                          deterministic=True, render=False)
             model = train_algorithm("MlpPolicy",
                                     embedding_env,
