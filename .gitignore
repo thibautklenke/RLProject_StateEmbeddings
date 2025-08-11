@@ -3,6 +3,7 @@
 .venv/
 
 result
-logs
 
 **/__pycache__/
+
+./logs/
