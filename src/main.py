@@ -8,6 +8,7 @@ from stable_baselines3.common.utils import set_random_seed
 
 
 def main() -> None:
+    """Run pretraining and training experiments for multiple environments"""
     seeds = range(10)
     register_envs()  # Register minatar namespace for gymnasium
 

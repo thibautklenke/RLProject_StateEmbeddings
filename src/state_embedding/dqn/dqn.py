@@ -11,6 +11,64 @@ from .qnetwork import EmbeddingPolicy
 
 
 class DQNWithReconstruction(DQN):
+    """DQN agent with an additional reconstruction loss for state embeddings.
+
+    This class extends the standard DQN algorithm to jointly optimize for Q-learning and
+    state reconstruction. It uses an EmbeddingPolicy with a StateEmbedding feature extractor
+    and a StateDecoder for reconstructing the input observation from the embedding.
+
+    Parameters
+    ----------
+    env : Union[GymEnv, str]
+        The environment to learn from (can be string for gym.make or a GymEnv).
+    learning_rate : Union[float, Schedule], optional
+        Learning rate for the optimizer or a schedule function (default is 1e-4).
+    buffer_size : int, optional
+        Size of the replay buffer (default is 1_000_000).
+    learning_starts : int, optional
+        Number of steps before learning starts (default is 100).
+    batch_size : int, optional
+        Minibatch size for each gradient update (default is 32).
+    tau : float, optional
+        Soft update coefficient for the target network (default is 1.0).
+    gamma : float, optional
+        Discount factor (default is 0.99).
+    train_freq : Union[int, tuple[int, str]], optional
+        Update the model every `train_freq` steps (default is 4).
+    gradient_steps : int, optional
+        How many gradient steps to do after each rollout (default is 1).
+    replay_buffer_class : type[ReplayBuffer], optional
+        Replay buffer class to use.
+    replay_buffer_kwargs : dict[str, Any], optional
+        Keyword arguments for the replay buffer.
+    optimize_memory_usage : bool, optional
+        Enable a memory efficient variant of the replay buffer (default is False).
+    target_update_interval : int, optional
+        Update the target network every `target_update_interval` steps (default is 10000).
+    exploration_fraction : float, optional
+        Fraction of entire training period over which the exploration rate is reduced (default is 0.1).
+    exploration_initial_eps : float, optional
+        Initial value of random action probability (default is 1.0).
+    exploration_final_eps : float, optional
+        Final value of random action probability (default is 0.05).
+    max_grad_norm : float, optional
+        Maximum gradient norm for clipping (default is 10).
+    stats_window_size : int, optional
+        Window size for logging statistics (default is 100).
+    tensorboard_log : str, optional
+        Path for tensorboard logs.
+    policy_kwargs : dict[str, Any], optional
+        Additional keyword arguments for the policy.
+    verbose : int, optional
+        Verbosity level (default is 0).
+    seed : int, optional
+        Random seed.
+    device : Union[th.device, str], optional
+        Device for training ("cpu", "cuda", or torch.device).
+    _init_setup_model : bool, optional
+        Whether to build the network at initialization (default is True).
+    """
+
     def __init__(
         self,
         env: Union[GymEnv, str],
@@ -38,6 +96,12 @@ class DQNWithReconstruction(DQN):
         device: Union[th.device, str] = "auto",
         _init_setup_model: bool = True,
     ) -> None:
+        """Initialize the DQNWithReconstruction agent.
+
+        Parameters
+        ----------
+        (see class docstring for parameter details)
+        """
         super().__init__(
             EmbeddingPolicy,
             env,
@@ -70,6 +134,16 @@ class DQNWithReconstruction(DQN):
         )
 
     def train(self, gradient_steps: int, batch_size: int = 100) -> None:
+        """Perform a training update for the DQN agent, including reconstruction loss.
+
+        Parameters
+        ----------
+        gradient_steps : int
+            Number of gradient steps to perform.
+        batch_size : int, optional
+            Minibatch size for each gradient update (default is 100).
+
+        """
         # Switch to train mode (this affects batch norm / dropout)
         self.policy.set_training_mode(True)
         # Update learning rate according to schedule
@@ -78,7 +152,7 @@ class DQNWithReconstruction(DQN):
         losses = []
         reconstruction_losses = []
         for _ in range(gradient_steps):
-            # Sample replay buffer
+            # Sample a batch from the replay buffer
             replay_data = self.replay_buffer.sample(
                 batch_size, env=self._vec_normalize_env
             )  # type: ignore[union-attr]
@@ -105,7 +179,7 @@ class DQNWithReconstruction(DQN):
                     + (1 - replay_data.dones) * self.gamma * next_q_values
                 )
 
-            # Get current Q-values estimates
+            # Get current Q-values estimates and reconstruction loss
             current_q_values, reconstruction_loss = self.q_net.combined_forward(
                 replay_data.observations
             )
@@ -120,7 +194,6 @@ class DQNWithReconstruction(DQN):
             # Compute Huber loss (less sensitive to outliers)
             loss = F.smooth_l1_loss(current_q_values, target_q_values)
             losses.append(loss.item())
-
             reconstruction_losses.append(reconstruction_loss.item())
 
             # Optimize the policy
@@ -134,6 +207,7 @@ class DQNWithReconstruction(DQN):
         # Increase update counter
         self._n_updates += gradient_steps
 
+        # Logging
         self.logger.record("train/n_updates", self._n_updates, exclude="tensorboard")
         self.logger.record("train/loss", np.mean(losses))
         self.logger.record("train/reconstruction_loss", np.mean(reconstruction_losses))

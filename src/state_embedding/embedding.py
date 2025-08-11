@@ -6,14 +6,53 @@ from torch import nn
 
 
 class StateEmbedding(BaseFeaturesExtractor):
+    """Transformer-based state embedding module for RL environments.
+
+    Encodes a window of observations into a fixed-size embedding vector using a transformer encoder.
+    The output embedding is constrained to [0, 1] by a sigmoid activation.
+
+    Parameters
+    ----------
+    observation_space : spaces.Space
+        The observation space of the environment.
+    features_dim : int, optional
+        Dimension of the output embedding vector.
+    window_size : int, optional
+        Number of previous observations to stack.
+    n_head : int, optional
+        Number of attention heads in the transformer encoder.
+    n_layers : int, optional
+        Number of transformer encoder layers.
+
+    Methods
+    -------
+    forward(observations: th.Tensor) -> th.Tensor
+        Encode a batch of observation windows into embedding vectors.
+    """
+
     def __init__(
         self,
         observation_space: spaces.Space,
         features_dim: int = 8,
-        window_size: int = 5,
+        window_size: int = 10,
         n_head: int = 2,
         n_layers: int = 6,
     ):
+        """Initialize the StateEmbedding module.
+
+        Parameters
+        ----------
+        observation_space : spaces.Space
+            The observation space of the environment.
+        features_dim : int, optional
+            Dimension of the output embedding vector (default is 8).
+        window_size : int, optional
+            Number of previous observations to stack (default is 10).
+        n_head : int, optional
+            Number of attention heads in the transformer encoder (default is 2).
+        n_layers : int, optional
+            Number of transformer encoder layers (default is 6).
+        """
         super().__init__(observation_space, features_dim)
 
         self.window_size = window_size
@@ -41,6 +80,18 @@ class StateEmbedding(BaseFeaturesExtractor):
         )
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
+        """Encode a batch of observation windows into embedding vectors.
+
+        Parameters
+        ----------
+        observations : th.Tensor
+            Tensor of shape [batch_size, window_size, *obs.shape].
+
+        Returns
+        -------
+        th.Tensor
+            Embedding tensor of shape [batch_size, features_dim].
+        """
         # [bs, window_size, *obs.shape]
         x = self.head(observations)
         # [bs, window_size, self._in_dim]
@@ -54,14 +105,52 @@ class StateEmbedding(BaseFeaturesExtractor):
 
 
 class StateDecoder(nn.Module):
+    """Transformer-based state decoder for reconstructing observation windows from embeddings.
+
+    Decodes a fixed-size embedding vector into a sequence of observations using a transformer decoder.
+
+    Parameters
+    ----------
+    observation_space : spaces.Space
+        The observation space of the environment.
+    features_dim : int, optional
+        Dimension of the input embedding vector.
+    window_size : int, optional
+        Number of observations to reconstruct.
+    n_head : int, optional
+        Number of attention heads in the transformer decoder.
+    n_layers : int, optional
+        Number of transformer decoder layers.
+
+    Methods
+    -------
+    forward(embedding: th.Tensor) -> th.Tensor
+        Decode a batch of embedding vectors into observation windows.
+    """
+
     def __init__(
         self,
         observation_space: spaces.Space,
         features_dim: int = 8,
-        window_size: int = 5,
+        window_size: int = 10,
         n_head: int = 2,
         n_layers: int = 6,
     ):
+        """Initialize the StateDecoder module.
+
+        Parameters
+        ----------
+        observation_space : spaces.Space
+            The observation space of the environment.
+        features_dim : int, optional
+            Dimension of the input embedding vector (default is 8).
+        window_size : int, optional
+            Number of observations to reconstruct (default is 10).
+        n_head : int, optional
+            Number of attention heads in the transformer decoder (default is 2).
+        n_layers : int, optional
+            Number of transformer decoder layers (default is 6).
+        """
         super().__init__()
 
         self._window_size = window_size
@@ -82,6 +171,18 @@ class StateDecoder(nn.Module):
         )
 
     def forward(self, embedding: th.Tensor) -> th.Tensor:
+        """Decode a batch of embedding vectors into observation windows.
+
+        Parameters
+        ----------
+        embedding : th.Tensor
+            Tensor of shape [batch_size, features_dim].
+
+        Returns
+        -------
+        th.Tensor
+            Reconstructed observations of shape [batch_size, window_size, *obs.shape].
+        """
         # [bs, features_dim]
         x = self._decoder_decompress(embedding)
         # [bs, self._in_dim]
@@ -91,20 +192,6 @@ class StateDecoder(nn.Module):
             size=(x.shape[0], self._window_size, self._in_dim), device=x.device
         )
         tgt = self._decoder(tgt, memory)
-
-        #### # FIXME: currently broken
-        #### # Use greedy decoding to reconstruct sequence
-        #### token_shape = (x.shape[0], 1, self._in_dim)
-        #### tgt = th.zeros(size=token_shape)
-        #### # [bs, 1, self._in_dim]
-        #### for i in range(self._window_size):
-        ####     recon = self._decoder(tgt, memory)
-        ####     # [bs, i, self._in_dim]
-        ####     tgt[:, i, :] = recon[:, i, :]
-        ####
-        ####     if i < self._window_size - 1:
-        ####         # Prepare next token
-        ####         tgt = th.cat((tgt, th.zeros(size=token_shape)), dim=1)
 
         # [bs, window_size, self._in_dim]
         tgt = self.reconstruct(tgt)

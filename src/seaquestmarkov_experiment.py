@@ -40,7 +40,19 @@ n_train = 4_000_000
 net_arch = [128, 128]
 
 
-def pretrain(seed=0) -> None:
+def pretrain(seed: int = 0) -> None:
+    """Pretrain embedding networks using different pretraining objectives
+    in the alternative MinAtar Seaquest environment.
+
+    For each pretraining type, trains a DQN agent with the specified pretraining function,
+    saves the resulting embedding network to disk, and logs progress and checkpoints.
+
+    Parameters
+    ----------
+    seed : int, optional
+        Random seed for environment initialization (default is 0).
+
+    """
     env = gym.make(env_name)
     env.reset(seed=seed)
     device = "cuda" if th.cuda.is_available() else "cpu"
@@ -76,7 +88,19 @@ def pretrain(seed=0) -> None:
         th.save(embedding_net, f"embedding_net_{env_name_short}-{pretrain_name}.pth")
 
 
-def train(seed=0) -> None:
+def train(seed: int = 0) -> None:
+    """Train RL agents with and without pretrained embeddings
+    in the alternative MinAtar Seaquest environment.
+
+    For each RL algorithm, first trains a baseline agent, then trains agents using
+    each pretrained embedding network. Evaluation is performed during training.
+
+    Parameters
+    ----------
+    seed : int, optional
+        Random seed for environment initialization (default is 0).
+
+    """
     device = "cuda" if th.cuda.is_available() else "cpu"
     for train_algorithm_name, train_algorithm in train_algorithm_types:
         # first train the algorithm normally so we know a benchmark
