@@ -49,8 +49,8 @@ def pretrain_combined(
     tensorboard_log: str = "./logs/",
     callbacks: list[BaseCallback] = [ProgressBarCallback()],
     device: str = "cpu",
-    exploration_fraction: float=0.2,
-    exploration_final_eps: float=0.1,
+    exploration_fraction: float = 0.2,
+    exploration_final_eps: float = 0.1,
 ) -> DQNWithReconstruction:
     window_size = embedding_kwargs.get("window_size", 5)
     dqn = DQNWithReconstruction(

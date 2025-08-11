@@ -1,34 +1,32 @@
-import random
 import gymnasium as gym
-import numpy as np
 import torch as th
-from minatar.gym import register_envs
-from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import EvalCallback, ProgressBarCallback, CheckpointCallback
-from stable_baselines3.common.utils import set_random_seed
+from stable_baselines3.common.callbacks import (
+    EvalCallback,
+    ProgressBarCallback,
+    CheckpointCallback,
+)
 from stable_baselines3.dqn import DQN
+from stable_baselines3.ppo import PPO
 from state_embedding.callbacks import EveryNSteps
 
 import subprocess
 
-import minigrid
 from minigrid.wrappers import FlatObsWrapper
 
-from state_embedding.embedding import StateEmbedding
 from state_embedding.env import EmbeddingEnv, ContextEnv
 from state_embedding.train import pretrain_combined, pretrain_qloss
 
 pretrain_types = [
     ("pretrain_combined", pretrain_combined),
-#    ("pretrain_qloss", pretrain_qloss),
+    ("pretrain_qloss", pretrain_qloss),
 ]
 
 train_algorithm_types = [
     ("DQN", DQN),
-#    ("PPO", PPO),
+    ("PPO", PPO),
 ]
 
-embedding_kwargs={
+embedding_kwargs = {
     "features_dim": 256,
     "window_size": 20,
     "n_head": 2,
@@ -56,11 +54,21 @@ def pretrain(seed=0) -> None:
             embedding_kwargs=embedding_kwargs,
             policy_kwargs={"net_arch": net_arch},
             total_timesteps=n_pretrain,
-            callbacks=[ProgressBarCallback(),
-                       CheckpointCallback(save_freq=n_pretrain // 10, save_path=f"./saves/{env_name_short}/",
-                                          name_prefix=f"{env_name_short}_{pretrain_name}_embedding", save_replay_buffer=False,
-                                          save_vecnormalize=False),
-                       EveryNSteps(n_steps=n_pretrain // 10, callback=lambda: subprocess.call("/workspace/RLProject_StateEmbeddings/move_to_s3.sh"))
+            callbacks=[
+                ProgressBarCallback(),
+                CheckpointCallback(
+                    save_freq=n_pretrain // 10,
+                    save_path=f"./saves/{env_name_short}/",
+                    name_prefix=f"{env_name_short}_{pretrain_name}_embedding",
+                    save_replay_buffer=False,
+                    save_vecnormalize=False,
+                ),
+                EveryNSteps(
+                    n_steps=n_pretrain // 10,
+                    callback=lambda: subprocess.call(
+                        "/workspace/RLProject_StateEmbeddings/move_to_s3.sh"
+                    ),
+                ),
             ],
             device=device,
             exploration_fraction=0.2,
@@ -81,27 +89,33 @@ def train(seed=0) -> None:
         eval_env = FlatObsWrapper(gym.make(env_name))
         eval_env.reset(seed=seed + 1)
 
-        eval_callback = EvalCallback(eval_env,
-                                     log_path=f"./logs/{env_name_short}/train/{seed}/normal/logs/",
-                                     eval_freq=n_train // 200,
-                                     deterministic=True, render=False
+        eval_callback = EvalCallback(
+            eval_env,
+            log_path=f"./logs/{env_name_short}/train/{seed}/normal/logs/",
+            eval_freq=n_train // 200,
+            deterministic=True,
+            render=False,
         )
 
-        model = train_algorithm("MlpPolicy", env,
-                    device=device,
-                    tensorboard_log=f"./logs/{env_name_short}/train/{seed}/normal/128/logs/",
-                    policy_kwargs={
-                        "net_arch": net_arch,
-                    }
+        model = train_algorithm(
+            "MlpPolicy",
+            env,
+            device=device,
+            tensorboard_log=f"./logs/{env_name_short}/train/{seed}/normal/128/logs/",
+            policy_kwargs={
+                "net_arch": net_arch,
+            },
         )
 
         model.learn(total_timesteps=n_train, progress_bar=True, callback=eval_callback)
 
-
         # now train the algorithms with the pretrain types
         for pretrain_name, _ in pretrain_types:
             # Use deterministic actions for evaluation
-            embedding_net = th.load(f"embedding_net_{env_name_short}-{pretrain_name}.pth", weights_only=False)
+            embedding_net = th.load(
+                f"embedding_net_{env_name_short}-{pretrain_name}.pth",
+                weights_only=False,
+            )
 
             embedding_net.to(device)
             embedding_net.eval()
@@ -110,24 +124,35 @@ def train(seed=0) -> None:
             env.reset(seed=seed + 1)
 
             embedding_env = EmbeddingEnv(
-                env=ContextEnv(env, embedding_kwargs["window_size"]), embedding_module=embedding_net,
-                window_size=embedding_net.window_size
+                env=ContextEnv(env, embedding_kwargs["window_size"]),
+                embedding_module=embedding_net,
+                window_size=embedding_net.window_size,
             )
 
             # Separate evaluation env
             eval_env = EmbeddingEnv(
-                env=ContextEnv(FlatObsWrapper(gym.make(env_name)), embedding_kwargs["window_size"]), embedding_module=embedding_net,
-                window_size=embedding_net.window_size
+                env=ContextEnv(
+                    FlatObsWrapper(gym.make(env_name)), embedding_kwargs["window_size"]
+                ),
+                embedding_module=embedding_net,
+                window_size=embedding_net.window_size,
             )
             eval_env.reset(seed=seed + 1)
-            eval_callback = EvalCallback(eval_env,
-                                         log_path=f"./logs/{env_name_short}/train/{seed}/{pretrain_name}/logs/", eval_freq=n_train // 200,
-                                         deterministic=True, render=False)
-            model = train_algorithm("MlpPolicy",
-                                    embedding_env,
-                                    policy_kwargs={"net_arch": net_arch},
-                                    device=device,
-                                    tensorboard_log=f"./logs/{env_name_short}/train/{seed}/{pretrain_name}/128/logs/"
+            eval_callback = EvalCallback(
+                eval_env,
+                log_path=f"./logs/{env_name_short}/train/{seed}/{pretrain_name}/logs/",
+                eval_freq=n_train // 200,
+                deterministic=True,
+                render=False,
+            )
+            model = train_algorithm(
+                "MlpPolicy",
+                embedding_env,
+                policy_kwargs={"net_arch": net_arch},
+                device=device,
+                tensorboard_log=f"./logs/{env_name_short}/train/{seed}/{pretrain_name}/128/logs/",
             )
 
-            model.learn(total_timesteps=n_train, progress_bar=True, callback=eval_callback)
+            model.learn(
+                total_timesteps=n_train, progress_bar=True, callback=eval_callback
+            )

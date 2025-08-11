@@ -90,11 +90,13 @@ class EmbeddingTrainingCallback(BaseCallback):
 
         return True
 
+
 class EveryNSteps(EventCallback):
     """
     Trigger a callback every `n_steps` timesteps
     :param n_steps: (int) Number of timesteps between two trigger.
     """
+
     def __init__(self, n_steps: int, callback):
         super(EveryNSteps, self).__init__()
         self.n_steps = n_steps

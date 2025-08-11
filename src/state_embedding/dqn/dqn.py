@@ -82,7 +82,7 @@ class DQNWithReconstruction(DQN):
             replay_data = self.replay_buffer.sample(
                 batch_size, env=self._vec_normalize_env
             )  # type: ignore[union-attr]
-            
+
             device = self.device
             replay_data = replay_data._replace(
                 observations=replay_data.observations.to(device),
@@ -109,7 +109,7 @@ class DQNWithReconstruction(DQN):
             current_q_values, reconstruction_loss = self.q_net.combined_forward(
                 replay_data.observations
             )
-            
+
             reconstruction_loss = reconstruction_loss.to(device)
 
             # Retrieve the q-values for the actions from the replay buffer
