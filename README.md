@@ -1,4 +1,4 @@
-# RLProject_StateEmbeddings ☄️
+# Contextual State Embeddings in Deep RL ☄️
 
 A research framework for learning and evaluating state embeddings in reinforcement learning (RL) environments. This project provides tools for pretraining, training, and evaluating RL agents with learned state representations, including transformer-based embeddings and reconstruction objectives.
 
