@@ -68,7 +68,7 @@ The main entry point is `src/main.py`, which manages pretraining and training fo
 To run all experiments (pretraining and training for each environment and seed):
 
 ```bash
-python src/main.py
+uv run main
 ```
 
 - By default, this will run pretraining once per environment, then train agents with different seeds.
