@@ -7,8 +7,7 @@ ActType = TypeVar("ActType")
 
 
 class SeaquestNoMarkov(Env):
-    """
-    A version of the MinAtar Seaquest environment that does not have the oxygen bar.
+    """A version of the MinAtar Seaquest environment that does not have the oxygen bar.
 
     This environment wraps the standard MinAtar Seaquest environment and masks out the oxygen bar
     from the observation, making the environment partially observable. All other environment
@@ -31,8 +30,6 @@ class SeaquestNoMarkov(Env):
 
     Methods
     -------
-    __init__(env: Env) -> None
-        Initialize the SeaquestNoMarkov environment wrapper.
     step(action: ActType) -> Tuple[ObsType, dict[str, Any]]
         Take a step in the environment, masking out the oxygen bar in the observation.
     reset(seed: Optional[int] = None, options: Optional[dict] = None) -> Tuple[ObsType, dict[str, Any]]
@@ -71,8 +68,7 @@ class SeaquestNoMarkov(Env):
         self.spec = self._env.spec
 
     def step(self, action: ActType) -> Tuple[ObsType, dict[str, Any]]:
-        """
-        Take one step in the environment.
+        """Take one step in the environment.
 
         Parameters
         ----------
