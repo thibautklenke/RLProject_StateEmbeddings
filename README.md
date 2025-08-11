@@ -10,7 +10,7 @@ A research framework for learning and evaluating state embeddings in reinforceme
 - **Pretraining & Evaluation:** Pretrain embeddings with various objectives and evaluate with linear probes.
 - **Support for Multiple Environments:** Includes experiments for CartPole, MinAtar Breakout, and MiniGrid Unlock.
 
-## Repository Structure 🌝
+## Repository Structure 🌜
 
 ```
 RLProject_StateEmbeddings/ 
@@ -38,7 +38,7 @@ RLProject_StateEmbeddings/
 └── README.md                                   # This file
 ```
 
-## Installation ☂️
+## Installation 🌌
 
 This project uses [uv](https://github.com/astral-sh/uv) for Python package management and virtual environments.
 
