@@ -18,11 +18,8 @@ dependencies = [
 ]
 
 [project.scripts]
-hello = "state_embedding:hello"
 main = "main:main"
 graphs = "graphs:graphs"
-test_qloss = "state_embedding:test_qloss"
-test_combined = "state_embedding:test_combined"
 seaquest_train = "seaquest_experiment:train"
 seaquest_pretrain = "seaquest_experiment:pretrain"
 
